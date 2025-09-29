@@ -14,6 +14,12 @@ export class ValidationError extends CustomError {
     }
 }
 
+export class BadRequestError extends CustomError {
+    constructor(message: string) {
+        super(message, 400);
+    }
+}
+
 export class AuthenticationError extends CustomError {
     constructor(message: string) {
         super(message, 401); // unauthorized

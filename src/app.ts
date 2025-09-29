@@ -5,6 +5,7 @@ import compression from "compression";
 import morgan from "morgan";
 import appRoutes from "./routes";
 import logger from "./utils/logger";
+import { errorMiddleware } from "./middlewares/error.middleware";
 
 const app = express();
 app.set('trust proxy', 1);
@@ -32,5 +33,8 @@ app.use(morgan("combined", { stream })); // Logging
 
 // Routes
 app.use('/api/v1', appRoutes);
+
+// use error middleware
+app.use(errorMiddleware);
 
 export default app;
