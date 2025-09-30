@@ -12,7 +12,8 @@ interface User extends Document {
     address?: UserAddress,
     isActive: boolean,
     forgotPasswordToken?: string,
-    avatarUrl?: string
+    avatarUrl?: string,
+    comparePassword(enteredPassword: string): Promise<boolean>;
 }
 
 type UserModel = Model<User>;
