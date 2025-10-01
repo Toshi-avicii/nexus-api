@@ -35,9 +35,6 @@ export default class AuthService {
   }
 
   static async login(body: LoginBody) {
-    console.log(body.email);
-    console.log(body.password);
-
     try {
       // Validate input
       if (!body.email || !body.password) {
@@ -86,5 +83,4 @@ export default class AuthService {
       throw err; // Re-throw other errors
     }
   }
-
 }

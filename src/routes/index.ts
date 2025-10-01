@@ -7,6 +7,6 @@ const appRoutes = Router();
 
 appRoutes.use('/auth', authRouter);
 appRoutes.use('/users',userRouter);
-appRoutes.use('/category', categoryRouter)
+appRoutes.use('/categories', categoryRouter)
 
 export default appRoutes;

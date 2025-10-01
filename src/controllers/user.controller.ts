@@ -19,7 +19,6 @@ export const getMe = async (
     }
 
     const user = await userModel.findById(userId);
-    console.log(user);
 
     if (!user) {
       throw new AuthenticationError("User not found or inactive");
@@ -56,11 +55,10 @@ export const updateMe = async (
       throw new AuthenticationError("User not authenticated");
     }
 
-    const { username, email, password } = req.body as UpdateUserBody;
+    const { username, email } = req.body as UpdateUserBody;
     const data = await UserService.updateUser(userId, {
       username,
-      email,
-      password,
+      email
     });
     logger.info("User profile updated successfully", { userId });
     res.status(200).json(data);

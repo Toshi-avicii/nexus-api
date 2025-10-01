@@ -16,7 +16,7 @@ export default class UserService {
   static async updateUser(userId: string, body: UpdateUserBody) {
     try {
       // Validate input
-      if (!body.username && !body.email && !body.password) {
+      if (!body.username && !body.email) {
         logger.warn("No fields provided for update", { userId });
         throw new ValidationError("At least one field (username, email, or password) must be provided");
       }
@@ -40,16 +40,6 @@ export default class UserService {
           logger.warn("Email already in use", { email: update.email });
           throw new BadRequestError("Email already in use by another user");
         }
-      }
-      if (body.password) {
-        update.password = body.password.trim();
-        if (update.password.length < 5) {
-          throw new ValidationError("Password must be at least 5 characters long");
-        }
-        // Manually hash the password
-        logger.info("Hashing updated password", { userId });
-        const salt = await bcrypt.genSalt(10);
-        update.password = await bcrypt.hash(update.password, salt);
       }
 
       logger.info("Updating user profile", { userId, update });

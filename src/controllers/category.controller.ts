@@ -54,9 +54,16 @@ export const updateCategory = async (req: Request, res: Response, next: NextFunc
 export const deleteCategory = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    await CategoryService.deleteCategory(id);
-    logger.info("Category deleted successfully", { id });
-    res.status(204).json();
+    const result = await CategoryService.deleteCategory(id);
+    if(result) {
+      logger.info("Category deleted successfully", { id });
+      res.status(200).json({
+        message: "category deleted successfully",
+        id
+      });
+    } else {
+      throw new Error("Could not delete category");
+    }
   } catch (err) {
     logger.error("Error occurred in deleteCategory", { error: err });
     next(err);

@@ -35,7 +35,7 @@ const categorySchema = new Schema<Category, CategoryModel>(
 );
 
 // Index for name
-categorySchema.index({ name: 1 });
+// categorySchema.index({ name: 1 });
 
 categorySchema.pre<Category>("save", async function (next) {
   try {
