@@ -1,14 +1,16 @@
 import { MongooseError } from "mongoose";
 import userModel from "../models/user.model";
-import { CreateUserBody, LoginBody} from "../types/auth";
+import { CreateUserBody, LoginBody } from "../types/auth";
 import {
   AuthenticationError,
   BadRequestError,
+  CustomError,
   ValidationError,
 } from "../utils/errors";
 import jwt from "jsonwebtoken";
 import config from "../config";
 import logger from "../utils/logger";
+import nodemailer from 'nodemailer';
 
 export default class AuthService {
   static async createUser(body: CreateUserBody) {
@@ -83,4 +85,53 @@ export default class AuthService {
       throw err; // Re-throw other errors
     }
   }
-}
+
+  static async resetLink({ email }: { email: string }) {
+    try {
+      const existingUser = await userModel.findOne({ email }, { email: 1, username: 1, _id: 1 });
+      if (!existingUser) throw new Error("User not found");
+
+      // create a token that will be valid for 15 minutes
+      const token = jwt.sign({ id: existingUser._id }, config.jwtSecret, { expiresIn: '15m' });
+      const saveDataInExistingUser = await userModel.findOneAndUpdate({ email }, { forgotPasswordToken: token }, { new: true });
+
+      if (saveDataInExistingUser) {
+        const resetLink = `${config.frontendUrl}/reset-password?token=${token}`;
+        // sent email to the recepient
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: config.senderMailId,
+            pass: config.mailAppPassword
+          }
+        });
+
+        const mailOptions = {
+          from: config.senderMailId,
+          to: existingUser.email,
+          subject: "Password Reset Request",
+          // text: "Hello! This is a test email sent using Nodemailer.",
+          html: `<p>Click <a href="${resetLink}">here</a> to reset your password. This link expires in 15 minutes.</p>`
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+          if (error) {
+            console.error("Error sending email:", error);
+          } else {
+            console.log("Email sent: " + info.response);
+          }
+        });
+
+        return {
+          message: "Password reset link sent to email.",
+        }
+      } else {
+        throw new CustomError('Some error occurred');
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        throw new CustomError(err.message);
+      }
+    }
+  }
+} 
