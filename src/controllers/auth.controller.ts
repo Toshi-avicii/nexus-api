@@ -50,4 +50,18 @@ export const login = async (
   }
 };
 
+export const forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await AuthService.resetLink(req.body);
+    logger.info("forgot password API hit successfully");
+    res.status(200).json(result);
+  } catch (err) {
+    if (err instanceof Error) {
+      logger.error("Error occurred", { message: err.message });
+      // res.status(400).json({ message: err.message });
+      next(err);
+    }
+  }
+}
+
 
