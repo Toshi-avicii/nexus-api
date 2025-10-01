@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import config from "../config";
 import { AuthenticationError } from "../utils/errors";
 import logger from "../utils/logger";
+import { CustomJWTPayload } from "../types/general";
 
 export const verifyToken = (
   req: Request,
@@ -16,8 +17,9 @@ export const verifyToken = (
   }
 
   try {
-    const decoded = jwt.verify(token, config.jwtSecret as string);
+    const decoded = jwt.verify(token, config.jwtSecret as string) as CustomJWTPayload;
     (req as any).user = decoded;
+    res.locals.userId = decoded.userId;
     next();
   } catch (error) {
     throw new AuthenticationError("Invalid token");
