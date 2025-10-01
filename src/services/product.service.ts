@@ -9,7 +9,7 @@ interface CreateProductBody {
   description?: string;
   price: number;
   stock?: number;
-  category: string;
+  category: string[];
   images?: string[];
   isActive?: boolean;
 }
@@ -51,7 +51,9 @@ export default class ProductService {
       }
 
       // Check if category exists
-      const categoryExists = await categoryModel.findById(body.category).lean();
+      const categoryExists = await categoryModel.find({
+        _id: { $in: body.category }
+      }).lean();
       if (!categoryExists) {
         logger.warn("Category not found", { category: body.category });
         throw new BadRequestError("Category not found");
@@ -68,12 +70,13 @@ export default class ProductService {
 
       // Create new product
       logger.info("Creating new product", { name: body.name });
+      const uniqueCategories = Array.from(new Set(body.category));
       const newProduct = await productModel.create({
         name: body.name.trim(),
         description: body.description?.trim(),
         price: body.price,
         stock: body.stock ?? 0,
-        category: body.category,
+        category: uniqueCategories,
         images: body.images || [],
         isActive: body.isActive ?? true,
       });

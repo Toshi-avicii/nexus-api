@@ -1,4 +1,4 @@
-import { Document, model, Model, models, Schema, Types } from "mongoose";
+import mongoose, { Document, model, Model, models, Schema, Types } from "mongoose";
 import logger from "../utils/logger";
 
 // Define Product interface
@@ -7,7 +7,7 @@ interface Product extends Document {
   description?: string;
   price: number;
   stock: number;
-  category: Types.ObjectId;
+  category: Schema.Types.ObjectId[];
   images: string[];
   isActive: boolean;
   createdAt: Date;
@@ -15,7 +15,7 @@ interface Product extends Document {
 }
 
 // Define ProductModel type
-interface ProductModel extends Model<Product> {}
+interface ProductModel extends Model<Product> { }
 
 const productSchema = new Schema<Product, ProductModel>(
   {
@@ -42,11 +42,19 @@ const productSchema = new Schema<Product, ProductModel>(
       default: 0,
       min: [0, "Stock cannot be negative"],
     },
-    category: {
+    category: [{
       type: Schema.Types.ObjectId,
       ref: "Category",
       required: [true, "Category is required"],
-    },
+      validate: {
+        validator: async function (value) {
+          const Category = model('Category');
+          const exists = await Category.exists({ _id: value });
+          return exists;
+        },
+        message: props => `"${props.value}" is not a valid category.`,
+      }
+    }],
     images: [
       {
         type: String,

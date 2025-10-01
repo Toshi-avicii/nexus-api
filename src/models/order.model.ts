@@ -5,7 +5,7 @@ import logger from "../utils/logger";
 interface Order extends Document {
   user: Types.ObjectId;
   items: {
-    product: Types.ObjectId;
+    product: Schema.Types.ObjectId;
     quantity: number;
     price: number;
   }[];
@@ -24,7 +24,7 @@ interface Order extends Document {
 }
 
 // Define OrderModel type
-interface OrderModel extends Model<Order> {}
+interface OrderModel extends Model<Order> { }
 
 const orderSchema = new Schema<Order, OrderModel>(
   {
@@ -39,6 +39,14 @@ const orderSchema = new Schema<Order, OrderModel>(
           type: Schema.Types.ObjectId,
           ref: "Product",
           required: [true, "Product is required"],
+          validate: {
+            validator: async function (value) {
+              const Product = model('Product');
+              const exists = await Product.exists({ _id: value });
+              return exists;
+            },
+            message: props => `"${props.value}" is not a valid product.`,
+          }
         },
         quantity: {
           type: Number,
