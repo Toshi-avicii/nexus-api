@@ -57,7 +57,7 @@ export const updateMe = async (
       throw new AuthenticationError("User not authenticated");
     }
 
-   const { username, email, isActive } = req.body as UpdateUserBody;
+    const { username, email, isActive } = req.body as UpdateUserBody;
     const data = await UserService.updateUser(userId, {
       username,
       email,
@@ -169,6 +169,45 @@ export const deleteUser = async (
     res.status(200).json(data);
   } catch (err) {
     logger.error("Error occurred in deleteUser", { error: err });
+    next(err);
+  }
+};
+
+export const getAllUsersForAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { page, limit } = req.query;
+    const data = await UserService.getAllUsersForAdmin({
+      page: page ? parseInt(page as string, 10) : undefined,
+      limit: limit ? parseInt(limit as string, 10) : undefined,
+    });
+    logger.info("All users retrieved for admin");
+    res.status(200).json(data);
+  } catch (err) {
+    logger.error("Error occurred in getAllUsersForAdmin", { error: err });
+    next(err);
+  }
+};
+
+export const updateUserByAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId } = req.params;
+    const { role, isActive } = req.body;
+    const data = await UserService.updateUserByAdmin(userId, {
+      role,
+      isActive,
+    });
+    logger.info("User updated by admin successfully", { userId });
+    res.status(200).json(data);
+  } catch (err) {
+    logger.error("Error occurred in updateUserByAdmin", { error: err });
     next(err);
   }
 };

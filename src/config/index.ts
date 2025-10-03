@@ -7,6 +7,11 @@ export default {
   dbUrl: process.env.DATABASE_URL || "",
   jwtSecret: process.env.JWT_SECRET || "",
   mailAppPassword: process.env.MAIL_APP_PASSWORD || "",
-  senderMailId: process.env.MAIL_ID || '',
+  senderMailId: process.env.MAIL_ID || "",
   frontendUrl: process.env.FRONTEND_URL,
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+  },
 };
