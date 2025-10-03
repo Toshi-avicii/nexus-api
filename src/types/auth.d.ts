@@ -10,13 +10,13 @@ export type CreateUserBody = {
   isActive: boolean;
 };
 
-export type UserAddress = {
+export interface UserAddress {
   street: string;
   city: string;
   state: string;
   country: string;
   postalCode: string;
-};
+}
 
 export interface LoginBody {
   email: string;

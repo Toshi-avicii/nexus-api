@@ -18,7 +18,7 @@ export const signUp = async (
       phone,
       password,
       role,
-      isActive: true,
+      isActive: true // or set to false as per your business logic
     });
     logger.info("User created successfully");
     res.status(200).json(data);

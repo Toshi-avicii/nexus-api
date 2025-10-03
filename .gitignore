@@ -4,3 +4,5 @@ logs
 .env
 .env.local
 .env*
+src/.DS_Store
+.DS_Store
