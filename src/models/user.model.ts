@@ -9,7 +9,7 @@ interface User extends Document {
     phone: string,
     password: string,
     role: UserType,
-    address?: UserAddress,
+    addresses: UserAddress[],
     isActive: boolean,
     forgotPasswordToken?: string,
     avatarUrl?: string,
@@ -17,6 +17,34 @@ interface User extends Document {
 }
 
 type UserModel = Model<User>;
+
+const addressSchema = new Schema<UserAddress>({
+  street: {
+    type: String,
+    required: true,
+    maxLength: [120, "street name should be no longer than 120 characters"],
+  },
+  city: {
+    type: String,
+    required: true,
+    maxLength: [50, "city name should be no longer than 50 characters"],
+  },
+  state: {
+    type: String,
+    required: true,
+    maxLength: [35, "state name should be no longer than 35 characters"],
+  },
+  country: {
+    type: String,
+    required: true,
+    maxLength: [120, "country name should be no longer than 120 characters"],
+  },
+  postalCode: {
+    type: String,
+    required: true,
+    maxLength: [6, "postal code should be no longer than 6 characters"],
+  },
+});
 
 const userSchema = new Schema<User, UserModel>({
     username: {
@@ -58,38 +86,16 @@ const userSchema = new Schema<User, UserModel>({
         },
         default: "user",
     },
-    address: {
-        street: {
-            type: String,
-            required: [false, 'street name is required'],
-            maxLength: [120, "street name should be no longer than 120 characters"],
-        },
-        city: {
-            type: String,
-            required: [false, 'city name is required'],
-            maxLength: [50, "city name should be no longer than 50 characters"],
-        },
-        state: {
-            type: String,
-            required: [false, 'state name is required'],
-            maxLength: [35, "state name should be no longer than 35 characters"],
-        },
-        country: {
-            type: String,
-            required: [false, 'street name is required'],
-            maxLength: [120, "street name should be no longer than 120 characters"],
-        },
-        postalCode: {
-            type: String,
-            required: [false, 'postal code is required'],
-            maxLength: [6, "postal code should be no longer than 6 characters"],
-        },
-    },
+    addresses: [addressSchema],
     phone: {
         type: String,
         minLength: [10, 'Invalid phone number'],
         maxLength: [10, "Phone number must not be more than 10 characters long"],
         required: [true, 'Phone number is required']
+    },
+       isActive: {
+        type: Boolean,
+        default: true
     }
 }, {
     timestamps: true
@@ -106,12 +112,14 @@ userSchema.pre<User>('save', async function (next) {
         next();
     }
 
-    if (this.address) {
-        const { street, city, state, country, postalCode } = this.address;
-        if (!street || !city || !state || !country || !postalCode) {
-            return next(new Error("All address fields are required when address is provided"));
-        } else {
-            next();
+    if (this.addresses && this.addresses.length > 0) {
+        for (const address of this.addresses) {
+            const { street, city, state, country, postalCode } = address;
+            if (!street || !city || !state || !country || !postalCode) {
+                return next(new Error("All address fields are required when address is provided"));
+            } else {
+                next();
+            }
         }
     }
 

@@ -10,7 +10,16 @@ interface Order extends Document {
     price: number;
   }[];
   totalAmount: number;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  status:
+    | "pending"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled"
+    | "return requested"
+    | "return approved"
+    | "return rejected"
+    | "returned"; // <-- ADD NEW STATUSES
   shippingAddress: {
     street?: string;
     city?: string;
@@ -19,12 +28,13 @@ interface Order extends Document {
     postalCode?: string;
   };
   payment?: Types.ObjectId;
+  returnReason?: string; // <-- ADD THIS FIELD
   createdAt: Date;
   updatedAt: Date;
 }
 
 // Define OrderModel type
-interface OrderModel extends Model<Order> { }
+interface OrderModel extends Model<Order> {}
 
 const orderSchema = new Schema<Order, OrderModel>(
   {
@@ -41,12 +51,12 @@ const orderSchema = new Schema<Order, OrderModel>(
           required: [true, "Product is required"],
           validate: {
             validator: async function (value) {
-              const Product = model('Product');
+              const Product = model("Product");
               const exists = await Product.exists({ _id: value });
               return exists;
             },
-            message: props => `"${props.value}" is not a valid product.`,
-          }
+            message: (props) => `"${props.value}" is not a valid product.`,
+          },
         },
         quantity: {
           type: Number,
@@ -67,7 +77,17 @@ const orderSchema = new Schema<Order, OrderModel>(
     },
     status: {
       type: String,
-      enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
+      enum: [
+        "pending",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "return requested",
+        "return approved",
+        "return rejected",
+        "returned",
+      ],
       default: "pending",
     },
     shippingAddress: {
@@ -100,6 +120,11 @@ const orderSchema = new Schema<Order, OrderModel>(
     payment: {
       type: Schema.Types.ObjectId,
       ref: "Payment",
+    },
+    returnReason: {
+      type: String,
+      trim: true,
+      maxLength: [500, "Return reason must not exceed 500 characters"],
     },
   },
   {

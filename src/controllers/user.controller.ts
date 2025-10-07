@@ -4,6 +4,7 @@ import { AuthenticationError } from "../utils/errors";
 import userModel from "../models/user.model";
 import UserService from "../services/user.service";
 import { UpdateUserBody } from "../types/user";
+import { UserAddress } from "../types/auth";
 
 export const getMe = async (
   req: Request,
@@ -33,6 +34,7 @@ export const getMe = async (
         email: user.email,
         phone: user.phone,
         role: user.role,
+        addresses: user.addresses,
       },
     });
   } catch (err) {
@@ -55,15 +57,157 @@ export const updateMe = async (
       throw new AuthenticationError("User not authenticated");
     }
 
-    const { username, email } = req.body as UpdateUserBody;
+    const { username, email, isActive } = req.body as UpdateUserBody;
     const data = await UserService.updateUser(userId, {
       username,
-      email
+      email,
+      isActive, // Pass it to the service
     });
     logger.info("User profile updated successfully", { userId });
     res.status(200).json(data);
   } catch (err) {
     logger.error("Error occurred in updateMe", { error: err });
+    next(err);
+  }
+};
+
+export const addUserAddress = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = (req as any).user?.userId;
+    if (!userId) {
+      logger.warn("No userId in JWT payload");
+      throw new AuthenticationError("User not authenticated");
+    }
+
+    const { street, city, state, country, postalCode } =
+      req.body as UserAddress;
+    const data = await UserService.addUserAddress(userId, {
+      street,
+      city,
+      state,
+      country,
+      postalCode,
+    });
+    logger.info("User address added successfully", { userId });
+    res.status(201).json(data);
+  } catch (err) {
+    logger.error("Error occurred in addUserAddress", { error: err });
+    next(err);
+  }
+};
+
+export const updateUserAddress = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = (req as any).user?.userId;
+    if (!userId) {
+      logger.warn("No userId in JWT payload");
+      throw new AuthenticationError("User not authenticated");
+    }
+
+    const { addressId } = req.params;
+    const { street, city, state, country, postalCode } =
+      req.body as UserAddress;
+    const data = await UserService.updateUserAddress(userId, addressId, {
+      street,
+      city,
+      state,
+      country,
+      postalCode,
+    });
+    logger.info("User address updated successfully", { userId, addressId });
+    res.status(200).json(data);
+  } catch (err) {
+    logger.error("Error occurred in updateUserAddress", { error: err });
+    next(err);
+  }
+};
+
+export const deleteUserAddress = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = (req as any).user?.userId;
+    if (!userId) {
+      logger.warn("No userId in JWT payload");
+      throw new AuthenticationError("User not authenticated");
+    }
+
+    const { addressId } = req.params;
+    const data = await UserService.deleteUserAddress(userId, addressId);
+    logger.info("User address deleted successfully", { userId, addressId });
+    res.status(200).json(data);
+  } catch (err) {
+    logger.error("Error occurred in deleteUserAddress", { error: err });
+    next(err);
+  }
+};
+
+export const deleteUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = (req as any).user?.userId;
+    if (!userId) {
+      logger.warn("No userId in JWT payload");
+      throw new AuthenticationError("User not authenticated");
+    }
+
+    const data = await UserService.deleteUser(userId);
+    logger.info("User account deactivated successfully", { userId });
+    res.status(200).json(data);
+  } catch (err) {
+    logger.error("Error occurred in deleteUser", { error: err });
+    next(err);
+  }
+};
+
+export const getAllUsersForAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { page, limit } = req.query;
+    const data = await UserService.getAllUsersForAdmin({
+      page: page ? parseInt(page as string, 10) : undefined,
+      limit: limit ? parseInt(limit as string, 10) : undefined,
+    });
+    logger.info("All users retrieved for admin");
+    res.status(200).json(data);
+  } catch (err) {
+    logger.error("Error occurred in getAllUsersForAdmin", { error: err });
+    next(err);
+  }
+};
+
+export const updateUserByAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId } = req.params;
+    const { role, isActive } = req.body;
+    const data = await UserService.updateUserByAdmin(userId, {
+      role,
+      isActive,
+    });
+    logger.info("User updated by admin successfully", { userId });
+    res.status(200).json(data);
+  } catch (err) {
+    logger.error("Error occurred in updateUserByAdmin", { error: err });
     next(err);
   }
 };

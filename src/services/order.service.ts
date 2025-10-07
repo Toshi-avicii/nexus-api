@@ -2,7 +2,12 @@ import { MongooseError, Types } from "mongoose";
 import orderModel from "../models/order.model";
 import productModel from "../models/product.model";
 import userModel from "../models/user.model";
-import { ValidationError, BadRequestError, NotFoundError, AuthenticationError } from "../utils/errors";
+import {
+  ValidationError,
+  BadRequestError,
+  NotFoundError,
+  AuthenticationError,
+} from "../utils/errors";
 import logger from "../utils/logger";
 
 interface CreateOrderBody {
@@ -88,7 +93,8 @@ export default class OrderService {
 
       // Validate shipping address if provided
       if (body.shippingAddress) {
-        const { street, city, state, country, postalCode } = body.shippingAddress;
+        const { street, city, state, country, postalCode } =
+          body.shippingAddress;
         if (street && street.length > 100) {
           throw new ValidationError("Street must not exceed 100 characters");
         }
@@ -102,7 +108,9 @@ export default class OrderService {
           throw new ValidationError("Country must not exceed 50 characters");
         }
         if (postalCode && postalCode.length > 20) {
-          throw new ValidationError("Postal code must not exceed 20 characters");
+          throw new ValidationError(
+            "Postal code must not exceed 20 characters"
+          );
         }
       }
 
@@ -140,7 +148,9 @@ export default class OrderService {
         .lean();
 
       if (!populatedOrder) {
-        logger.error("Order not found after creation", { orderId: newOrder._id });
+        logger.error("Order not found after creation", {
+          orderId: newOrder._id,
+        });
         throw new BadRequestError("Order not found after creation");
       }
 
@@ -171,7 +181,7 @@ export default class OrderService {
     }
   }
 
-   static async getUserOrders(userId: string, query: GetUserOrdersQuery) {
+  static async getUserOrders(userId: string, query: GetUserOrdersQuery) {
     try {
       logger.info("Fetching orders for user", { userId, query });
 
@@ -289,5 +299,178 @@ export default class OrderService {
       }
       throw err;
     }
+  }
+
+  static async cancelOrder(orderId: string, userId: string, userRole: string) {
+    try {
+      logger.info("Attempting to cancel order", { orderId, userId });
+
+      // 1. Find the order
+      const order = await orderModel.findById(orderId);
+      if (!order) {
+        logger.warn("Order not found for cancellation", { orderId });
+        throw new NotFoundError("Order not found");
+      }
+
+      // 2. Check permissions
+      if (userRole !== "admin" && order.user.toString() !== userId) {
+        logger.warn("Unauthorized cancellation attempt", { orderId, userId });
+        throw new AuthenticationError("Unauthorized to cancel this order");
+      }
+
+      // 3. Check if the order status allows cancellation
+      if (order.status !== "pending" && order.status !== "processing") {
+        logger.warn("Cancellation rejected for order status", {
+          orderId,
+          status: order.status,
+        });
+        throw new BadRequestError(
+          `Order cannot be cancelled. Status: ${order.status}`
+        );
+      }
+
+      // 4. Restore product stock
+      await Promise.all(
+        order.items.map(async (item) => {
+          await productModel.findByIdAndUpdate(item.product, {
+            $inc: { stock: item.quantity }, // Increase stock by the ordered quantity
+          });
+        })
+      );
+      logger.info("Product stock restored for cancelled order", { orderId });
+
+      // 5. Update the order status to "cancelled"
+      order.status = "cancelled";
+      await order.save();
+
+      logger.info("Order successfully cancelled", { orderId });
+
+      return {
+        message: "Order has been cancelled successfully.",
+        data: order,
+      };
+    } catch (err) {
+      logger.error("Error in cancelOrder service", { error: err });
+      if (err instanceof MongooseError) {
+        throw new BadRequestError("Invalid order ID");
+      }
+      throw err;
+    }
+  }
+
+  static async requestReturn(orderId: string, userId: string, reason: string) {
+    try {
+      logger.info("Attempting to request return for order", {
+        orderId,
+        userId,
+      });
+
+      const order = await orderModel.findById(orderId);
+      if (!order) {
+        throw new NotFoundError("Order not found");
+      }
+
+      if (order.user.toString() !== userId) {
+        throw new AuthenticationError(
+          "Unauthorized to request a return for this order"
+        );
+      }
+
+      if (order.status !== "delivered") {
+        throw new BadRequestError(
+          `A return can only be requested for a delivered order. Current status: ${order.status}`
+        );
+      }
+
+      const deliveryDate = order.updatedAt;
+      const returnWindowDays = 30;
+      const today = new Date();
+      const diffTime = Math.abs(today.getTime() - deliveryDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays > returnWindowDays) {
+        throw new BadRequestError(
+          `The ${returnWindowDays}-day return window for this order has expired.`
+        );
+      }
+
+      const updatedOrder = await orderModel.findByIdAndUpdate(
+        orderId,
+        { $set: { status: "return requested", returnReason: reason } },
+        { new: true }
+      );
+
+      logger.info("Return successfully requested for order", { orderId });
+
+      return {
+        message:
+          "Return has been requested successfully. You will be notified once it is reviewed.",
+        data: updatedOrder,
+      };
+    } catch (err) {
+      logger.error("Error in requestReturn service", { error: err });
+      if (err instanceof MongooseError) {
+        throw new BadRequestError("Invalid order ID");
+      }
+      throw err;
+    }
+  }
+
+  static async getAllOrdersForAdmin(query: GetUserOrdersQuery) {
+    try {
+      const page = query.page || 1;
+      const limit = query.limit || 10;
+      const skip = (page - 1) * limit;
+
+      const [orders, total] = await Promise.all([
+        orderModel
+          .find({}) // Find all orders, no user filter
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .populate("user", "username email") // Populate user details
+          .lean(),
+        orderModel.countDocuments({}),
+      ]);
+
+      return {
+        message: "All orders retrieved successfully.",
+        data: orders,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    } catch (err) {
+      // ... error handling
+    }
+  }
+
+  static async updateOrderStatus(orderId: string, newStatus: string) {
+    // Get the list of valid statuses directly from your Mongoose schema's enum
+    const validStatuses = (orderModel.schema.path("status") as any).options
+      .enum;
+    if (!validStatuses.includes(newStatus)) {
+      throw new BadRequestError(
+        `Invalid status: "${newStatus}" is not a valid option.`
+      );
+    }
+
+    const updatedOrder = await orderModel.findByIdAndUpdate(
+      orderId,
+      { $set: { status: newStatus } },
+      { new: true } // This option returns the document after the update
+    );
+
+    if (!updatedOrder) {
+      throw new NotFoundError("Order not found.");
+    }
+
+    return {
+      message: "Order status updated successfully.",
+      data: updatedOrder,
+    };
   }
 }

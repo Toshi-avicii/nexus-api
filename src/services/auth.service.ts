@@ -20,13 +20,22 @@ export default class AuthService {
         throw new Error("Data missing");
       }
 
-      return {
+       const token = jwt.sign(
+        { userId: newUser._id, email: newUser.email, role: newUser.role },
+        config.jwtSecret as string,
+        { expiresIn: "1h" } // Or your preferred expiration
+      );
+
+    return {
         data: {
-          username: newUser.username,
-          email: newUser.email,
-          phone: newUser.phone,
-          role: newUser.role,
-          _id: newUser._id,
+          user: {
+            username: newUser.username,
+            email: newUser.email,
+            phone: newUser.phone,
+            role: newUser.role,
+            _id: newUser._id,
+          },
+          token, // Add the token here
         },
       };
     } catch (err) {
@@ -73,7 +82,7 @@ export default class AuthService {
             phone: user.phone,
             role: user.role,
             avatarUrl: user.avatarUrl,
-            address: user.address,
+            addresses: user.addresses,
           },
           token,
         },
