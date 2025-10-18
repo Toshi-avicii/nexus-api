@@ -26,6 +26,12 @@ export class AuthenticationError extends CustomError {
     }
 }
 
+export class TokenExpiredError extends CustomError {
+    constructor(message: string) {
+        super(message, 403)
+    }
+}
+
 export class ForbiddenError extends CustomError {
     constructor(message: string) {
         super(message, 403)

@@ -6,6 +6,7 @@ import morgan from "morgan";
 import appRoutes from "./routes";
 import logger from "./utils/logger";
 import { errorMiddleware } from "./middlewares/error.middleware";
+import cookieParser from "cookie-parser";
 
 const app = express();
 app.set('trust proxy', 1);
@@ -18,14 +19,15 @@ const stream = {
 
 // Middleware
 app.use(express.json()); // enable json
+app.use(cookieParser());
 app.use(cors({
-    origin: ['*'],
+    origin: ['http://localhost:3000'],
     credentials: true
 })); // Cross-Origin Resource Sharing
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Credentials', 'true');
-  next();
-});
+// app.use((req, res, next) => {
+//   res.header('Access-Control-Allow-Credentials', 'true');
+//   next();
+// });
 
 app.use(helmet()); // Security headers
 app.use(compression()); // Gzip compression
