@@ -25,9 +25,7 @@ export const getMe = async (
       throw new AuthenticationError("User not found or inactive");
     }
 
-    logger.info("User fetched successfully", {
-      email: user.email,
-    });
+    logger.info("User fetched successfully");
     res.status(200).json({
       data: {
         username: user.username,

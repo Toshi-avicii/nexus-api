@@ -9,7 +9,6 @@ import {
 } from "../utils/errors";
 import jwt from "jsonwebtoken";
 import config from "../config";
-import logger from "../utils/logger";
 import nodemailer from 'nodemailer';
 
 export default class AuthService {
@@ -20,13 +19,7 @@ export default class AuthService {
         throw new Error("Data missing");
       }
 
-       const token = jwt.sign(
-        { userId: newUser._id, email: newUser.email, role: newUser.role },
-        config.jwtSecret as string,
-        { expiresIn: "1h" } // Or your preferred expiration
-      );
-
-    return {
+      return {
         data: {
           user: {
             username: newUser.username,
@@ -34,8 +27,7 @@ export default class AuthService {
             phone: newUser.phone,
             role: newUser.role,
             _id: newUser._id,
-          },
-          token, // Add the token here
+          }
         },
       };
     } catch (err) {
@@ -66,13 +58,6 @@ export default class AuthService {
         throw new AuthenticationError("Invalid credentials");
       }
 
-      // Generate JWT
-      const token = jwt.sign(
-        { userId: user._id, email: user.email, role: user.role },
-        config.jwtSecret as string,
-        { expiresIn: "1h" }
-      );
-
       return {
         data: {
           user: {
@@ -83,8 +68,7 @@ export default class AuthService {
             role: user.role,
             avatarUrl: user.avatarUrl,
             addresses: user.addresses,
-          },
-          token,
+          }
         },
       };
     } catch (err) {
@@ -101,7 +85,7 @@ export default class AuthService {
       if (!existingUser) throw new Error("User not found");
 
       // create a token that will be valid for 15 minutes
-      const token = jwt.sign({ id: existingUser._id }, config.jwtSecret, { expiresIn: '15m' });
+      const token = jwt.sign({ id: existingUser._id }, config.accessTokenSecret, { expiresIn: '15m' });
       const saveDataInExistingUser = await userModel.findOneAndUpdate({ email }, { forgotPasswordToken: token }, { new: true });
 
       if (saveDataInExistingUser) {

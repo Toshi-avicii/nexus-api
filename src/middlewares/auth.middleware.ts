@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import config from "../config";
-import { AuthenticationError } from "../utils/errors";
+import { AuthenticationError, ForbiddenError, TokenExpiredError } from "../utils/errors";
 import logger from "../utils/logger";
 import { CustomJWTPayload } from "../types/general";
 
@@ -10,19 +10,24 @@ export const verifyToken = (
   res: Response,
   next: NextFunction
 ) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  const accessToken = req.cookies.accessToken;
 
-  if (!token) {
-    throw new AuthenticationError("No token provided");
+  if (!accessToken) {
+    return next(new AuthenticationError("Access token missing"));
   }
 
   try {
-    const decoded = jwt.verify(token, config.jwtSecret as string) as CustomJWTPayload;
+    const decoded = jwt.verify(accessToken, config.accessTokenSecret as string) as CustomJWTPayload;
     (req as any).user = decoded;
     res.locals.userId = decoded.userId;
     next();
-  } catch (error) {
-    throw new AuthenticationError("Invalid token");
+  } catch (error: any) {
+    // Token expired or invalid
+    if (error.name === "TokenExpiredError") {
+      return next(new TokenExpiredError("Access Token Expired"))
+    }
+    // return res.status(403).json({ message: "Invalid access token" });
+    return next(new ForbiddenError("Invalid Access Token"));
   }
 };
 
