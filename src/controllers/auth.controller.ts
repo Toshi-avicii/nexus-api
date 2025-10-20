@@ -192,7 +192,7 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
     res.clearCookie("accessToken");
     res.clearCookie("refreshToken");
   
-    res.status(200).json({ message: "Logged out successfully" });
+    res.status(200).json({ success: true, message: "Logged out successfully" });
   } catch(err) {
     logger.error("Error occurred in logout", { error: err });
     next(err);
