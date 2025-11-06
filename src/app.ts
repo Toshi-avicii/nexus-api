@@ -7,6 +7,8 @@ import appRoutes from "./routes";
 import logger from "./utils/logger";
 import { errorMiddleware } from "./middlewares/error.middleware";
 import cookieParser from "cookie-parser";
+import { limiter } from "./middlewares/rateLimit.middleware";
+import { speedLimiter } from "./middlewares/slowDown.middleware";
 
 const app = express();
 app.set('trust proxy', 1);
@@ -15,7 +17,6 @@ app.set('trust proxy', 1);
 const stream = {
     write: (message: string) => logger.info(message.trim()),
 };
-
 
 // Middleware
 app.use(express.json()); // enable json
@@ -32,6 +33,9 @@ app.use(cors({
 app.use(helmet()); // Security headers
 app.use(compression()); // Gzip compression
 app.use(morgan("combined", { stream })); // Logging
+app.use(speedLimiter); // Speed limiting
+app.use(limiter); // Rate limiting
+
 
 // Routes
 app.use('/api/v1', appRoutes);
