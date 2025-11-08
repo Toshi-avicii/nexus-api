@@ -26,8 +26,8 @@ export const signUp = async (
       role,
       isActive: true // or set to false as per your business logic
     });
-    const accessToken = jwt.sign({ userId: data?.data.user._id }, config.accessTokenSecret, { expiresIn: '15m' });
-    const refreshToken = jwt.sign({ userId: data?.data.user._id }, config.refreshTokenSecret, { expiresIn: '7d' });
+    const accessToken = jwt.sign({ userId: data?.data.user._id, role: data?.data.user.role }, config.accessTokenSecret, { expiresIn: '15m' });
+    const refreshToken = jwt.sign({ userId: data?.data.user._id, role: data?.data.user.role }, config.refreshTokenSecret, { expiresIn: '7d' });
 
     const newRefreshToken = await refreshTokenModel.create({
       userId: data?.data.user._id,
@@ -71,8 +71,8 @@ export const login = async (
   try {
     const { email, password } = req.body as LoginBody;
     const data = await AuthService.login({ email, password });
-    const accessToken = jwt.sign({ userId: data?.data.user._id }, config.accessTokenSecret, { expiresIn: '15m' });
-    const refreshToken = jwt.sign({ userId: data?.data.user._id }, config.refreshTokenSecret, { expiresIn: '7d' });
+    const accessToken = jwt.sign({ userId: data?.data.user._id, role: data?.data.user.role }, config.accessTokenSecret, { expiresIn: '15m' });
+    const refreshToken = jwt.sign({ userId: data?.data.user._id, role: data?.data.user.role }, config.refreshTokenSecret, { expiresIn: '7d' });
 
     const newRefreshToken = await refreshTokenModel.create({
       userId: data?.data.user._id,

@@ -20,6 +20,7 @@ export const verifyToken = (
     const decoded = jwt.verify(accessToken, config.accessTokenSecret as string) as CustomJWTPayload;
     (req as any).user = decoded;
     res.locals.userId = decoded.userId;
+    console.log({ decoded });
     next();
   } catch (error: any) {
     // Token expired or invalid
@@ -37,6 +38,7 @@ export const restrictToAdmin = (
   next: NextFunction
 ) => {
   const user = (req as any).user;
+  console.log({ user });
   if (!user || user.role !== "admin") {
     logger.warn("Access denied: Admin role required", { userId: user?.userId });
     throw new AuthenticationError("Access denied: Admin role required");

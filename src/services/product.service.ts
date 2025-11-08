@@ -3,8 +3,18 @@ import productModel from "../models/product.model";
 import categoryModel from "../models/category.model";
 import { ValidationError, BadRequestError } from "../utils/errors";
 import logger from "../utils/logger";
+import { MetaField, Option, Variant } from "../types/product";
+// import { PROUDCT_TYPES } from "../types/product";
+
+enum PROUDCT_TYPES {
+  CLOTHING = 'clothing',
+  ELECTRONICS = 'electronics',
+  FURNITURE = 'furniture',
+  OTHER = 'other'
+}
 
 interface CreateProductBody {
+  productType: PROUDCT_TYPES;
   name: string;
   description?: string;
   price: number;
@@ -12,6 +22,10 @@ interface CreateProductBody {
   category: string[];
   images?: string[];
   isActive?: boolean;
+  discount?: number;
+  variants?: Variant[];
+  options: Option[];
+  metaFields: MetaField[];
 }
 
 interface GetAllProductsQuery {
@@ -24,6 +38,7 @@ interface GetAllProductsQuery {
 }
 
 interface UpdateProductBody {
+  productType: PROUDCT_TYPES;
   name?: string;
   description?: string;
   price?: number;
@@ -31,6 +46,10 @@ interface UpdateProductBody {
   category?: string;
   images?: string[];
   isActive?: boolean;
+  discount?: boolean;
+  variants?: Variant[];
+  options?: Option[];
+  metaFields?: MetaField[];
 }
 
 export default class ProductService {
@@ -56,7 +75,7 @@ export default class ProductService {
       }).lean();
       if (!categoryExists) {
         logger.warn("Category not found", { category: body.category });
-        throw new BadRequestError("Category not found");
+        throw new ValidationError("Category not found");
       }
 
       // Check if product already exists
@@ -68,10 +87,16 @@ export default class ProductService {
         throw new BadRequestError("Product with this name already exists");
       }
 
+      if(!Object.values(PROUDCT_TYPES).includes(body.productType)) {
+        logger.warn("Product type is not valid", { productType: body.productType });
+        throw new BadRequestError("Invalid product type");
+      }
+
       // Create new product
       logger.info("Creating new product", { name: body.name });
       const uniqueCategories = Array.from(new Set(body.category));
       const newProduct = await productModel.create({
+        productType: body.productType,
         name: body.name.trim(),
         description: body.description?.trim(),
         price: body.price,
@@ -79,6 +104,10 @@ export default class ProductService {
         category: uniqueCategories,
         images: body.images || [],
         isActive: body.isActive ?? true,
+        discount: body.discount || 0,
+        variants: body.variants,
+        options: body.options,
+        metaFields: body.metaFields
       });
 
       logger.info("Product created successfully", {
@@ -88,13 +117,18 @@ export default class ProductService {
       return {
         data: {
           _id: newProduct._id,
+          productType: newProduct.productType,
           name: newProduct.name,
           description: newProduct.description,
           price: newProduct.price,
+          discount: newProduct.discount,
           stock: newProduct.stock,
           category: newProduct.category,
           images: newProduct.images,
           isActive: newProduct.isActive,
+          variants: newProduct.variants,
+          options: newProduct.options,
+          metaFields: newProduct.metaFields,
           createdAt: newProduct.createdAt,
           updatedAt: newProduct.updatedAt,
         },
@@ -108,7 +142,7 @@ export default class ProductService {
     }
   }
 
-   static async getAllProducts(query: GetAllProductsQuery) {
+  static async getAllProducts(query: GetAllProductsQuery) {
     try {
       logger.info("Fetching all products with filters", { query });
 
@@ -168,15 +202,20 @@ export default class ProductService {
       return {
         data: products.map((product) => ({
           _id: product._id,
+          productType: product.productType,
           name: product.name,
           description: product.description,
           price: product.price,
+          discount: product.discount,
           stock: product.stock,
           category: product.category,
           images: product.images,
           isActive: product.isActive,
           createdAt: product.createdAt,
           updatedAt: product.updatedAt,
+          variants: product.variants,
+          options: product.options,
+          metaFields: product.metaFields
         })),
         meta: {
           total,
@@ -194,7 +233,7 @@ export default class ProductService {
     }
   }
 
-   static async getProductById(id: string) {
+  static async getProductById(id: string) {
     try {
       logger.info("Fetching product by ID", { id });
       const product = await productModel
@@ -212,15 +251,20 @@ export default class ProductService {
       return {
         data: {
           _id: product._id,
+          productType: product.productType,
           name: product.name,
           description: product.description,
           price: product.price,
+          discount: product.discount,
           stock: product.stock,
           category: product.category,
           images: product.images,
           isActive: product.isActive,
           createdAt: product.createdAt,
           updatedAt: product.updatedAt,
+          variants: product.variants,
+          options: product.options,
+          metaFields: product.metaFields
         },
       };
     } catch (err) {
@@ -242,7 +286,10 @@ export default class ProductService {
         body.stock === undefined &&
         !body.category &&
         !body.images &&
-        body.isActive === undefined
+        body.isActive === undefined && 
+        !body.variants && 
+        !body.options && 
+        !body.metaFields
       ) {
         logger.warn("No fields provided for update", { id });
         throw new ValidationError(
@@ -252,6 +299,10 @@ export default class ProductService {
 
       // Prepare update object
       const update: Partial<UpdateProductBody> = {};
+      if(Object.values(PROUDCT_TYPES).includes(body.productType)) {
+        update.productType = body.productType;
+      }
+
       if (body.name) {
         update.name = body.name.trim();
         if (update.name.length < 2 || update.name.length > 100) {
@@ -304,6 +355,18 @@ export default class ProductService {
         update.isActive = body.isActive;
       }
 
+      if(body.variants !== undefined) {
+        update.variants = body.variants;
+      }
+
+      if(body.options !== undefined) {
+        update.options = body.options;
+      }
+
+      if(body.metaFields !== undefined) {
+        update.metaFields = body.metaFields;
+      }
+
       logger.info("Updating product", { id, update });
       const product = await productModel
         .findByIdAndUpdate(id, { $set: update }, { new: true, runValidators: true })
@@ -321,6 +384,7 @@ export default class ProductService {
           name: product.name,
           description: product.description,
           price: product.price,
+          discount: product.discount,
           stock: product.stock,
           category: product.category,
           images: product.images,
@@ -338,7 +402,7 @@ export default class ProductService {
     }
   }
 
-    static async deleteProduct(id: string) {
+  static async deleteProduct(id: string) {
     try {
       logger.info("Deleting product", { id });
       const product = await productModel.findByIdAndDelete(id).lean();

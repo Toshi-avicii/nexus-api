@@ -1,17 +1,49 @@
 import mongoose, { Document, model, Model, models, Schema, Types } from "mongoose";
 import logger from "../utils/logger";
+import { MetaField, Option, Variant } from "../types/product";
+
+enum PROUDCT_TYPES {
+  CLOTHING = 'clothing',
+  ELECTRONICS = 'electronics',
+  FURNITURE = 'furniture',
+  OTHER = 'other'
+}
+
+const metaFieldSchema = new Schema<MetaField>({
+  namespace: { type: String, required: [true, "namespace is required"] },
+  key: { type: String, required: [true, "key is required"] },
+  value: mongoose.Schema.Types.Mixed,
+  type: { type: String, default: "string" }
+}, { _id: false });
+
+const variantSchema = new mongoose.Schema<Variant>({
+  sku: { type: String, required: [true, 'SKU is required'] },
+  price: { type: Number, required: [true, 'variant price is required'] },
+  stock: { type: Number, required: [true, 'variant stock is required'] },
+  options: {type: mongoose.Schema.Types.Mixed, default: {} } // e.g. { size: "L", color: "Red" }
+}, { _id: false });
+
+const optionSchema = new mongoose.Schema<Option>({
+  name: { type: String, required: true }, // e.g. "Color"
+  values: [String] // e.g. ["Red", "Blue"]
+}, { _id: false });
 
 // Define Product interface
 interface Product extends Document {
+  productType: PROUDCT_TYPES;
   name: string;
   description?: string;
   price: number;
+  discount: number;
   stock: number;
   category: Schema.Types.ObjectId[];
   images: string[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  variants?: Variant[];
+  options?: Option[];
+  metaFields?: MetaField[];
 }
 
 // Define ProductModel type
@@ -19,6 +51,11 @@ interface ProductModel extends Model<Product> { }
 
 const productSchema = new Schema<Product, ProductModel>(
   {
+    productType: {
+      type: String,
+      required: [true, "product type is required"],
+      enum: Object.values(PROUDCT_TYPES)
+    },
     name: {
       type: String,
       required: [true, "Product name is required"],
@@ -36,6 +73,11 @@ const productSchema = new Schema<Product, ProductModel>(
       type: Number,
       required: [true, "Product price is required"],
       min: [0, "Price cannot be negative"],
+    },
+    discount: {
+      type: Number,
+      default: 0,
+      min: [0, "Discount cannot be negative"],
     },
     stock: {
       type: Number,
@@ -71,6 +113,10 @@ const productSchema = new Schema<Product, ProductModel>(
       type: Boolean,
       default: true,
     },
+
+    variants: [variantSchema],
+    options: [optionSchema],
+    metaFields: [metaFieldSchema]
   },
   {
     timestamps: true,
