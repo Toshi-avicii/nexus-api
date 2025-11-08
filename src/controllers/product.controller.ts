@@ -8,9 +8,10 @@ export const createProduct = async (
   next: NextFunction
 ) => {
   try {
-    const { name, description, price, stock, category, images, isActive } =
+    const { name, description, price, stock, category, images, isActive, productType, variants, options, metaFields } =
       req.body;
     const data = await ProductService.createProduct({
+      productType,
       name,
       description,
       price,
@@ -18,6 +19,9 @@ export const createProduct = async (
       category,
       images,
       isActive,
+      variants,
+      options, 
+      metaFields
     });
     logger.info("Product created successfully", { name });
     res.status(201).json(data);
@@ -73,9 +77,10 @@ export const updateProduct = async (
 ) => {
   try {
     const { id } = req.params;
-    const { name, description, price, stock, category, images, isActive } =
+    const { name, description, price, stock, category, images, isActive, productType } =
       req.body;
     const data = await ProductService.updateProduct(id, {
+      productType,
       name,
       description,
       price,
