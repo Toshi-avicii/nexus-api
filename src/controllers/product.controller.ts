@@ -1,15 +1,15 @@
 import { NextFunction, Request, Response } from "express";
 import ProductService from "../services/product.service";
 import logger from "../utils/logger";
+import { ProductInput } from "../types/product";
 
 export const createProduct = async (
-  req: Request,
+  req: Request<{}, {}, ProductInput>,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { name, description, price, stock, category, images, isActive, productType, variants, options, metaFields } =
-      req.body;
+    const { name, description, price, stock, category, images, isActive, productType, variants, options, metaFields } = req.body;
     const data = await ProductService.createProduct({
       productType,
       name,
@@ -71,13 +71,13 @@ export const getProductById = async (
 };
 
 export const updateProduct = async (
-  req: Request,
+  req: Request<{ id: string }, {}, ProductInput>,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { id } = req.params;
-    const { name, description, price, stock, category, images, isActive, productType } =
+    const { name, description, price, stock, category, images, isActive, productType, discount, metaFields, options, variants } =
       req.body;
     const data = await ProductService.updateProduct(id, {
       productType,
@@ -88,6 +88,10 @@ export const updateProduct = async (
       category,
       images,
       isActive,
+      discount,
+      variants,
+      options,
+      metaFields
     });
     logger.info("Product updated successfully", { id, name: data.data.name });
     res.status(200).json(data);

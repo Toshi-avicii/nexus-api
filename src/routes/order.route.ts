@@ -9,10 +9,12 @@ import {
   updateOrderStatus,
 } from "../controllers/order.controller";
 import { restrictToAdmin, verifyToken } from "../middlewares/auth.middleware";
+import validateResource from "../middlewares/inputValidation.middleware";
+import { createOrderBodySchema, updateOrderBodySchema } from "../validations/order.schema";
 
 const orderRouter = Router();
 
-orderRouter.post("/", verifyToken, createOrder);
+orderRouter.post("/", verifyToken, validateResource(createOrderBodySchema), createOrder);
 orderRouter.get("/", verifyToken, getUserOrders);
 orderRouter.get("/:id", verifyToken, getOrderById);
 orderRouter.patch("/:id/cancel", verifyToken, cancelOrder);
@@ -27,6 +29,7 @@ orderRouter.put(
   "/:orderId/status",
   verifyToken,
   restrictToAdmin,
+  validateResource(updateOrderBodySchema),
   updateOrderStatus
 );
 

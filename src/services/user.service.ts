@@ -16,33 +16,13 @@ import { UserAddress } from "../types/auth";
 export default class UserService {
   static async updateUser(userId: string, body: UpdateUserBody) {
     try {
-      // Validate input
-      if (
-        !body.username &&
-        !body.email &&
-        typeof body.isActive === "undefined"
-      ) {
-        logger.warn("No fields provided for update", { userId });
-        throw new ValidationError(
-          "At least one field (username, email, isActive) must be provided"
-        );
-      }
-
       // Prepare update object
       const update: Partial<UpdateUserBody> = {};
       if (body.username) {
         update.username = body.username.trim();
-        if (update.username.length < 3 || update.username.length > 20) {
-          throw new ValidationError(
-            "Username must be between 3 and 20 characters"
-          );
-        }
       }
       if (body.email) {
         update.email = body.email.toLowerCase();
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(update.email)) {
-          throw new ValidationError("Please enter a valid email address");
-        }
         // Check if email is already taken by another user
         const existingUser = await userModel.findOne({
           email: update.email,
@@ -53,10 +33,7 @@ export default class UserService {
           throw new BadRequestError("Email already in use by another user");
         }
       }
-
-      if (typeof body.isActive === "boolean") {
-        update.isActive = body.isActive;
-      }
+      update.isActive = body.isActive;
 
       logger.info("Updating user profile", { userId, update });
       const user = await userModel.findByIdAndUpdate(
@@ -94,29 +71,6 @@ export default class UserService {
 
       // Validate input
       const { street, city, state, country, postalCode } = body;
-      if (!street || !city || !state || !country || !postalCode) {
-        logger.warn("Missing address fields", { userId, body });
-        throw new ValidationError(
-          "All address fields (street, city, state, country, postalCode) are required"
-        );
-      }
-      if (street.length > 120) {
-        throw new ValidationError("Street name must not exceed 120 characters");
-      }
-      if (city.length > 50) {
-        throw new ValidationError("City name must not exceed 50 characters");
-      }
-      if (state.length > 35) {
-        throw new ValidationError("State name must not exceed 35 characters");
-      }
-      if (country.length > 120) {
-        throw new ValidationError(
-          "Country name must not exceed 120 characters"
-        );
-      }
-      if (postalCode.length > 6) {
-        throw new ValidationError("Postal code must not exceed 6 characters");
-      }
 
       // Validate user existence
       const user = await userModel.findById(userId);
@@ -179,29 +133,6 @@ export default class UserService {
 
       // Validate input
       const { street, city, state, country, postalCode } = body;
-      if (!street || !city || !state || !country || !postalCode) {
-        logger.warn("Missing address fields", { userId, body });
-        throw new ValidationError(
-          "All address fields (street, city, state, country, postalCode) are required"
-        );
-      }
-      if (street.length > 120) {
-        throw new ValidationError("Street name must not exceed 120 characters");
-      }
-      if (city.length > 50) {
-        throw new ValidationError("City name must not exceed 50 characters");
-      }
-      if (state.length > 35) {
-        throw new ValidationError("State name must not exceed 35 characters");
-      }
-      if (country.length > 120) {
-        throw new ValidationError(
-          "Country name must not exceed 120 characters"
-        );
-      }
-      if (postalCode.length > 6) {
-        throw new ValidationError("Postal code must not exceed 6 characters");
-      }
 
       // Validate user existence
       const user = await userModel.findById(userId);
@@ -368,21 +299,8 @@ export default class UserService {
 
     // Build update object to only include provided fields
     const update: { role?: string; isActive?: boolean } = {};
-    if (role) {
-      if (role !== "user" && role !== "admin") {
-        throw new BadRequestError("Invalid role specified.");
-      }
-      update.role = role;
-    }
-    if (typeof isActive === "boolean") {
-      update.isActive = isActive;
-    }
-
-    if (Object.keys(update).length === 0) {
-      throw new BadRequestError(
-        "At least one field (role, isActive) must be provided."
-      );
-    }
+    update.role = role;
+    update.isActive = isActive;
 
     const updatedUser = await userModel
       .findByIdAndUpdate(userId, { $set: update }, { new: true })
