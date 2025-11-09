@@ -2,9 +2,10 @@ import { NextFunction, Request, Response } from "express";
 import WishlistService from "../services/wishlist.service";
 import logger from "../utils/logger";
 import { AuthenticationError } from "../utils/errors";
+import { AddToWishlistInput } from "../types/wishlist";
 
 export const addToWishlist = async (
-  req: Request,
+  req: Request<{}, {}, AddToWishlistInput>,
   res: Response,
   next: NextFunction
 ) => {

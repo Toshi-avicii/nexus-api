@@ -2,9 +2,10 @@ import { NextFunction, Request, Response } from "express";
 import CouponService from "../services/coupon.service";
 import logger from "../utils/logger";
 import { AuthenticationError, BadRequestError } from "../utils/errors";
+import { AddCouponInput, ApplyCouponInput, UpdateCouponInput } from "../types/coupon";
 
 export const createCoupon = async (
-  req: Request,
+  req: Request<{}, {}, AddCouponInput>,
   res: Response,
   next: NextFunction
 ) => {
@@ -33,7 +34,7 @@ export const getAllCoupons = async (
 };
 
 export const updateCoupon = async (
-  req: Request,
+  req: Request<{ id: string }, {}, UpdateCouponInput>,
   res: Response,
   next: NextFunction
 ) => {
@@ -66,19 +67,12 @@ export const deleteCoupon = async (
 };
 
 export const applyCoupon = async (
-  req: Request,
+  req: Request<{}, {}, ApplyCouponInput>,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { couponCode, cartTotal } = req.body;
-
-    if (!couponCode || typeof cartTotal !== "number") {
-      throw new BadRequestError(
-        "Both 'couponCode' and 'cartTotal' are required."
-      );
-    }
-
     const data = await CouponService.applyCoupon(couponCode, cartTotal);
     logger.info("Coupon applied successfully", {
       code: couponCode,

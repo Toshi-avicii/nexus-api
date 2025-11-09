@@ -152,10 +152,6 @@ export const updateOrderStatus = async (
     const { orderId } = req.params;
     const { status } = req.body;
 
-    if (!status) {
-      throw new BadRequestError("Status is required in the request body.");
-    }
-
     const data = await OrderService.updateOrderStatus(orderId, status);
     logger.info("Order status updated by admin", {
       orderId,
