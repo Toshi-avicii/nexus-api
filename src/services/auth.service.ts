@@ -82,7 +82,7 @@ export default class AuthService {
   static async resetLink({ email }: { email: string }) {
     try {
       const existingUser = await userModel.findOne({ email }, { email: 1, username: 1, _id: 1 });
-      if (!existingUser) throw new Error("User not found");
+      if (!existingUser) throw new AuthenticationError("User not found");
 
       // create a token that will be valid for 15 minutes
       const token = jwt.sign({ id: existingUser._id }, config.accessTokenSecret, { expiresIn: '15m' });
@@ -123,7 +123,7 @@ export default class AuthService {
       }
     } catch (err) {
       if (err instanceof Error) {
-        throw new CustomError(err.message);
+        throw new CustomError(err.message, 400);
       }
     }
   }

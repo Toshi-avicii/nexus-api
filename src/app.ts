@@ -9,7 +9,8 @@ import { errorMiddleware } from "./middlewares/error.middleware";
 import cookieParser from "cookie-parser";
 import { limiter } from "./middlewares/rateLimit.middleware";
 import { speedLimiter } from "./middlewares/slowDown.middleware";
-
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpecification from "./swagger";
 const app = express();
 app.set('trust proxy', 1);
 
@@ -22,7 +23,7 @@ const stream = {
 app.use(express.json()); // enable json
 app.use(cookieParser());
 app.use(cors({
-    origin: ['http://localhost:3000'],
+    origin: ['http://localhost:3000', 'http://localhost:5050'],
     credentials: true
 })); // Cross-Origin Resource Sharing
 // app.use((req, res, next) => {
@@ -39,6 +40,7 @@ app.use(limiter); // Rate limiting
 
 // Routes
 app.use('/api/v1', appRoutes);
+app.use('/api/v1/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecification));
 
 // use error middleware
 app.use(errorMiddleware);

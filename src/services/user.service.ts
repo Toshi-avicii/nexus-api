@@ -4,13 +4,9 @@ import {
   AuthenticationError,
   BadRequestError,
   NotFoundError,
-  ValidationError,
 } from "../utils/errors";
-import jwt from "jsonwebtoken";
-import config from "../config";
 import logger from "../utils/logger";
 import { UpdateUserBody } from "../types/user";
-import bcrypt from "bcryptjs";
 import { UserAddress } from "../types/auth";
 
 export default class UserService {
@@ -22,7 +18,7 @@ export default class UserService {
         update.username = body.username.trim();
       }
       if (body.email) {
-        update.email = body.email.toLowerCase();
+        update.email = body.email;
         // Check if email is already taken by another user
         const existingUser = await userModel.findOne({
           email: update.email,
