@@ -2,9 +2,10 @@ import { NextFunction, Request, Response } from "express";
 import OrderService from "../services/order.service";
 import logger from "../utils/logger";
 import { AuthenticationError, BadRequestError } from "../utils/errors";
+import { CreateOrderInput, OrderInput, UpdateOrderStatusInput } from "../types/order";
 
 export const createOrder = async (
-  req: Request,
+  req: Request<{}, {}, CreateOrderInput>,
   res: Response,
   next: NextFunction
 ) => {
@@ -142,7 +143,7 @@ export const getAllOrdersForAdmin = async (
 };
 
 export const updateOrderStatus = async (
-  req: Request,
+  req: Request<{ orderId: string }, {}, UpdateOrderStatusInput>,
   res: Response,
   next: NextFunction
 ) => {
@@ -150,10 +151,6 @@ export const updateOrderStatus = async (
     // The admin check is handled by the 'restrictToAdmin' middleware in your route
     const { orderId } = req.params;
     const { status } = req.body;
-
-    if (!status) {
-      throw new BadRequestError("Status is required in the request body.");
-    }
 
     const data = await OrderService.updateOrderStatus(orderId, status);
     logger.info("Order status updated by admin", {

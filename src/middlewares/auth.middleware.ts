@@ -20,7 +20,6 @@ export const verifyToken = (
     const decoded = jwt.verify(accessToken, config.accessTokenSecret as string) as CustomJWTPayload;
     (req as any).user = decoded;
     res.locals.userId = decoded.userId;
-    console.log({ decoded });
     next();
   } catch (error: any) {
     // Token expired or invalid

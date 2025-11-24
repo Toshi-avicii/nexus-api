@@ -2,9 +2,10 @@ import { Request, Response, NextFunction } from "express";
 import ReviewService from "../services/review.service";
 import logger from "../utils/logger";
 import { BadRequestError } from "../utils/errors";
+import { AddReviewInput, UpdateReviewInput } from "../types/review";
 
 export const createReview = async (
-  req: Request,
+  req: Request<{ productId: string }, {}, AddReviewInput>,
   res: Response,
   next: NextFunction
 ) => {
@@ -17,10 +18,6 @@ export const createReview = async (
     let imageUrls: string[] = [];
     if (req.files && Array.isArray(req.files)) {
       imageUrls = (req.files as Express.Multer.File[]).map((file) => file.path);
-    }
-
-    if (!rating || !comment) {
-      throw new BadRequestError("Rating and comment are required.");
     }
 
     const data = await ReviewService.createReview({
@@ -53,7 +50,7 @@ export const getReviewsForProduct = async (
 };
 
 export const updateReview = async (
-  req: Request,
+  req: Request<{ reviewId: string }, {}, UpdateReviewInput>,
   res: Response,
   next: NextFunction
 ) => {

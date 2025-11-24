@@ -1,18 +1,19 @@
 import { NextFunction, Request, Response } from "express";
 import AuthService from "../services/auth.service";
 import logger from "../utils/logger";
-import { AuthenticationError, TokenExpiredError } from "../utils/errors";
+import { AuthenticationError, CustomError, TokenExpiredError } from "../utils/errors";
 import { LoginBody } from "../types/auth";
 import jwt, { JwtPayload, VerifyErrors } from 'jsonwebtoken';
 import config from '../config';
 import refreshTokenModel from "../models/refreshToken.model";
+import { CreateUserInput, ForgotPasswordInput, LoginUserInput } from "../types/user";
 
 interface UserPayload extends JwtPayload {
   userId: string
 }
 
 export const signUp = async (
-  req: Request,
+  req: Request<{}, {}, CreateUserInput>,
   res: Response,
   next: NextFunction
 ) => {
@@ -50,7 +51,7 @@ export const signUp = async (
     }
 
     logger.info("User created successfully");
-    res.status(200).json(data);
+    res.status(201).json(data);
   } catch (err) {
     console.log({ err });
     if (err instanceof Error) {
@@ -64,7 +65,7 @@ export const signUp = async (
 };
 
 export const login = async (
-  req: Request,
+  req: Request<{}, {}, LoginUserInput>,
   res: Response,
   next: NextFunction
 ) => {
@@ -101,13 +102,14 @@ export const login = async (
   }
 };
 
-export const forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
+export const forgotPassword = async (req: Request<{}, {}, ForgotPasswordInput>, res: Response, next: NextFunction) => {
   try {
     const result = await AuthService.resetLink(req.body);
     logger.info("forgot password API hit successfully");
     res.status(200).json(result);
   } catch (err) {
-    if (err instanceof Error) {
+    console.log({ err })
+    if (err instanceof Error || err instanceof CustomError) {
       logger.error("Error occurred", { message: err.message });
       // res.status(400).json({ message: err.message });
       next(err);

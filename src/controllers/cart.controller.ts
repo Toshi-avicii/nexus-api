@@ -2,9 +2,10 @@ import { NextFunction, Request, Response } from "express";
 import logger from "../utils/logger";
 import { AuthenticationError } from "../utils/errors";
 import CartService from "../services/cart.services";
+import { CartInput, UpdateCartItemQuantityInput } from "../types/cart";
 
 export const addToCart = async (
-  req: Request,
+  req: Request<{}, {}, CartInput>,
   res: Response,
   next: NextFunction
 ) => {
@@ -45,7 +46,7 @@ export const getCart = async (
 };
 
 export const updateCartItemQuantity = async (
-  req: Request,
+  req: Request<{ itemId: string }, {}, UpdateCartItemQuantityInput>,
   res: Response,
   next: NextFunction
 ) => {

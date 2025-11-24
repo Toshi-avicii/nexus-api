@@ -14,7 +14,7 @@ enum PROUDCT_TYPES {
 }
 
 interface CreateProductBody {
-  productType: PROUDCT_TYPES;
+  productType: "clothing" | "electronics" | "furniture" | "other";
   name: string;
   description?: string;
   price: number;
@@ -38,15 +38,15 @@ interface GetAllProductsQuery {
 }
 
 interface UpdateProductBody {
-  productType: PROUDCT_TYPES;
+  productType: "clothing" | "electronics" | "furniture" | "other";
   name?: string;
   description?: string;
   price?: number;
   stock?: number;
-  category?: string;
+  category?: string[];
   images?: string[];
   isActive?: boolean;
-  discount?: boolean;
+  discount: number;
   variants?: Variant[];
   options?: Option[];
   metaFields?: MetaField[];
@@ -87,7 +87,7 @@ export default class ProductService {
         throw new BadRequestError("Product with this name already exists");
       }
 
-      if(!Object.values(PROUDCT_TYPES).includes(body.productType)) {
+      if (!['clothing', 'furniture', 'other', 'electronics'].includes(body.productType)) {
         logger.warn("Product type is not valid", { productType: body.productType });
         throw new BadRequestError("Invalid product type");
       }
@@ -286,9 +286,9 @@ export default class ProductService {
         body.stock === undefined &&
         !body.category &&
         !body.images &&
-        body.isActive === undefined && 
-        !body.variants && 
-        !body.options && 
+        body.isActive === undefined &&
+        !body.variants &&
+        !body.options &&
         !body.metaFields
       ) {
         logger.warn("No fields provided for update", { id });
@@ -299,7 +299,7 @@ export default class ProductService {
 
       // Prepare update object
       const update: Partial<UpdateProductBody> = {};
-      if(Object.values(PROUDCT_TYPES).includes(body.productType)) {
+      if (['clothing', 'furniture', 'other', 'electronics'].includes(body.productType)) {
         update.productType = body.productType;
       }
 
@@ -355,15 +355,15 @@ export default class ProductService {
         update.isActive = body.isActive;
       }
 
-      if(body.variants !== undefined) {
+      if (body.variants !== undefined) {
         update.variants = body.variants;
       }
 
-      if(body.options !== undefined) {
+      if (body.options !== undefined) {
         update.options = body.options;
       }
 
-      if(body.metaFields !== undefined) {
+      if (body.metaFields !== undefined) {
         update.metaFields = body.metaFields;
       }
 

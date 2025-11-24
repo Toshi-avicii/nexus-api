@@ -15,9 +15,9 @@ interface CreateReviewParams {
 }
 
 interface UpdateReviewBody {
-  rating?: number;
-  comment?: string;
-  images?: string[];
+  rating?: number | undefined;
+  comment?: string | undefined;
+  images?: string[] | undefined;
 }
 
 export default class ReviewService {

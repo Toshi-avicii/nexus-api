@@ -3,7 +3,7 @@ import logger from "../utils/logger";
 import { AuthenticationError } from "../utils/errors";
 import userModel from "../models/user.model";
 import UserService from "../services/user.service";
-import { UpdateUserBody } from "../types/user";
+import { UpdateUserBody, UpdateUserByAdminInput, UpdateUserInput, UserAddressInput } from "../types/user";
 import { UserAddress } from "../types/auth";
 
 export const getMe = async (
@@ -13,7 +13,6 @@ export const getMe = async (
 ) => {
   try {
     const userId = (req as any).user.userId;
-    // console.log(userId);
 
     if (!userId) {
       throw new AuthenticationError("User not authenticated");
@@ -44,7 +43,7 @@ export const getMe = async (
 };
 
 export const updateMe = async (
-  req: Request,
+  req: Request<{}, {}, UpdateUserInput>,
   res: Response,
   next: NextFunction
 ) => {
@@ -70,7 +69,7 @@ export const updateMe = async (
 };
 
 export const addUserAddress = async (
-  req: Request,
+  req: Request<{}, {}, UserAddressInput>,
   res: Response,
   next: NextFunction
 ) => {
@@ -99,7 +98,7 @@ export const addUserAddress = async (
 };
 
 export const updateUserAddress = async (
-  req: Request,
+  req: Request<{ addressId: string }, any, UserAddressInput>,
   res: Response,
   next: NextFunction
 ) => {
@@ -191,7 +190,7 @@ export const getAllUsersForAdmin = async (
 };
 
 export const updateUserByAdmin = async (
-  req: Request,
+  req: Request<{ userId: string }, any, UpdateUserByAdminInput>,
   res: Response,
   next: NextFunction
 ) => {

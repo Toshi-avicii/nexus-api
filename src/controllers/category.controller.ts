@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import CategoryService from "../services/category.service";
 import logger from "../utils/logger";
+import { CategoryInput } from "../types/category";
 
-export const createCategory = async (req: Request, res: Response, next: NextFunction) => {
+export const createCategory = async (req: Request<{}, {}, CategoryInput>, res: Response, next: NextFunction) => {
   try {
     const { name, description } = req.body;
     const data = await CategoryService.createCategory({ name, description });
@@ -38,7 +39,7 @@ export const getCategoryById = async (req: Request, res: Response, next: NextFun
   }
 };
 
-export const updateCategory = async (req: Request, res: Response, next: NextFunction) => {
+export const updateCategory = async (req: Request<{ id: string }, any, CategoryInput>, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { name, description } = req.body;
