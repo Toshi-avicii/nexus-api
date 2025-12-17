@@ -9,7 +9,14 @@ export const createProduct = async (
   next: NextFunction
 ) => {
   try {
-    const { name, description, price, stock, category, images, isActive, productType, variants, options, metaFields } = req.body;
+    const { 
+      name, 
+      description,
+      price, 
+      stock, 
+      category, 
+      // images, 
+      isActive, productType, variants, options, metaFields } = req.body;
     const data = await ProductService.createProduct({
       productType,
       name,
@@ -17,7 +24,7 @@ export const createProduct = async (
       price,
       stock,
       category,
-      images,
+      // images,
       isActive,
       variants,
       options, 
@@ -77,7 +84,20 @@ export const updateProduct = async (
 ) => {
   try {
     const { id } = req.params;
-    const { name, description, price, stock, category, images, isActive, productType, discount, metaFields, options, variants } =
+    const { 
+      name, 
+      description, 
+      price, 
+      stock, 
+      category, 
+      // images, 
+      isActive, 
+      productType, 
+      discount, 
+      metaFields, 
+      options, 
+      variants 
+    } =
       req.body;
     const data = await ProductService.updateProduct(id, {
       productType,
@@ -86,7 +106,7 @@ export const updateProduct = async (
       price,
       stock,
       category,
-      images,
+      // images,
       isActive,
       discount,
       variants,

@@ -9,6 +9,11 @@ enum PROUDCT_TYPES {
   OTHER = 'other'
 }
 
+enum PRODUCT_STATUSES {
+  DRAFT = 'draft',
+  PUBLISHED = 'published'
+}
+
 const metaFieldSchema = new Schema<MetaField>({
   namespace: { type: String, required: [true, "namespace is required"] },
   key: { type: String, required: [true, "key is required"] },
@@ -20,7 +25,7 @@ const variantSchema = new mongoose.Schema<Variant>({
   sku: { type: String, required: [true, 'SKU is required'] },
   price: { type: Number, required: [true, 'variant price is required'] },
   stock: { type: Number, required: [true, 'variant stock is required'] },
-  options: {type: mongoose.Schema.Types.Mixed, default: {} } // e.g. { size: "L", color: "Red" }
+  options: {type: mongoose.Schema.Types.Mixed, default: [] } // e.g. { size: "L", color: "Red" }
 }, { _id: false });
 
 const optionSchema = new mongoose.Schema<Option>({
@@ -31,6 +36,7 @@ const optionSchema = new mongoose.Schema<Option>({
 // Define Product interface
 interface Product extends Document {
   productType: PROUDCT_TYPES;
+  productStatus: PRODUCT_STATUSES;
   name: string;
   description?: string;
   price: number;
@@ -55,6 +61,11 @@ const productSchema = new Schema<Product, ProductModel>(
       type: String,
       required: [true, "product type is required"],
       enum: Object.values(PROUDCT_TYPES)
+    },
+    productStatus: {
+      type: String,
+      default: PRODUCT_STATUSES.DRAFT,
+      enum: Object.values(PRODUCT_STATUSES)
     },
     name: {
       type: String,

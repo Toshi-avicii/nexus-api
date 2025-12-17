@@ -20,7 +20,7 @@ interface CreateProductBody {
   price: number;
   stock?: number;
   category: string[];
-  images?: string[];
+  // images?: string[];
   isActive?: boolean;
   discount?: number;
   variants?: Variant[];
@@ -44,7 +44,7 @@ interface UpdateProductBody {
   price?: number;
   stock?: number;
   category?: string[];
-  images?: string[];
+  // images?: string[];
   isActive?: boolean;
   discount: number;
   variants?: Variant[];
@@ -102,7 +102,7 @@ export default class ProductService {
         price: body.price,
         stock: body.stock ?? 0,
         category: uniqueCategories,
-        images: body.images || [],
+        // images: body.images || [],
         isActive: body.isActive ?? true,
         discount: body.discount || 0,
         variants: body.variants,
@@ -203,6 +203,7 @@ export default class ProductService {
         data: products.map((product) => ({
           _id: product._id,
           productType: product.productType,
+          status: product.productStatus,
           name: product.name,
           description: product.description,
           price: product.price,
@@ -285,7 +286,7 @@ export default class ProductService {
         body.price === undefined &&
         body.stock === undefined &&
         !body.category &&
-        !body.images &&
+        // !body.images &&
         body.isActive === undefined &&
         !body.variants &&
         !body.options &&
@@ -348,9 +349,9 @@ export default class ProductService {
         }
         update.category = body.category;
       }
-      if (body.images) {
-        update.images = body.images;
-      }
+      // if (body.images) {
+      //   update.images = body.images;
+      // }
       if (body.isActive !== undefined) {
         update.isActive = body.isActive;
       }

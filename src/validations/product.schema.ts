@@ -36,7 +36,7 @@ export const variantSchema = z.object({
   sku: z.string().min(1, "SKU is required"),
   price: z.number().nonnegative("Price cannot be negative"),
   stock: z.number().nonnegative("Stock cannot be negative"),
-  options: z.record(z.string(), z.string()).default({}), // e.g. { size: "L", color: "Red" }
+  options: z.array(z.record(z.string(), z.string()).default({})), // e.g. { size: "L", color: "Red" }
 });
 
 /* ----------------------------------
@@ -72,12 +72,12 @@ export const productSchema = z.object({
       z.string().regex(/^[a-f\d]{24}$/i, "Invalid category ObjectId")
     ).min(1, "At least one category is required"),
   
-    images: z.array(
-      z.string().regex(
-        /^(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp))$/i,
-        "Invalid image URL"
-      )
-    ).optional().default([]),
+    // images: z.array(
+    //   z.string().regex(
+    //     /^(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp))$/i,
+    //     "Invalid image URL"
+    //   )
+    // ).optional().default([]),
   
     isActive: z.boolean().default(true),
   
