@@ -20,7 +20,7 @@ interface CreateProductBody {
   price: number;
   stock?: number;
   category: string[];
-  // images?: string[];
+  images?: string[];
   isActive?: boolean;
   discount?: number;
   variants?: Variant[];
@@ -102,7 +102,7 @@ export default class ProductService {
         price: body.price,
         stock: body.stock ?? 0,
         category: uniqueCategories,
-        // images: body.images || [],
+        images: body.images || [],
         isActive: body.isActive ?? true,
         discount: body.discount || 0,
         variants: body.variants,

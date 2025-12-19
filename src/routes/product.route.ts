@@ -3,10 +3,11 @@ import { createProduct, deleteProduct, getAllProducts, getProductById, updatePro
 import { verifyToken, restrictToAdmin } from "../middlewares/auth.middleware";
 import validateResource from "../middlewares/inputValidation.middleware";
 import { productSchema } from "../validations/product.schema";
+import upload from "../middlewares/upload.middleware";
 
 const productRouter = Router();
 
-productRouter.post("/", verifyToken, restrictToAdmin, validateResource(productSchema), createProduct);
+productRouter.post("/", verifyToken, restrictToAdmin, upload.array('images', 10), validateResource(productSchema), createProduct);
 productRouter.get("/", getAllProducts);
 productRouter.get("/:id", getProductById);
 productRouter.put("/:id", verifyToken, restrictToAdmin, validateResource(productSchema), updateProduct);

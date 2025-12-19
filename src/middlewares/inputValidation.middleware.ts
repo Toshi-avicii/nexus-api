@@ -5,8 +5,9 @@ const validateResource =
     (schema: ZodObject<ZodRawShape>) =>
         (req: Request, res: Response, next: NextFunction) => {
             try {
+                const product = JSON.parse(req.body?.product); // only for create new product route.
                 schema.parse({
-                    body: req.body,
+                    body: product ? product : req.body,
                     query: req.query,
                     params: req.params,
                 });

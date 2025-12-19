@@ -2,36 +2,56 @@ import { NextFunction, Request, Response } from "express";
 import ProductService from "../services/product.service";
 import logger from "../utils/logger";
 import { ProductInput } from "../types/product";
+import { BadRequestError } from "../utils/errors";
+
+interface CreateProductRequest extends Request<{}, {}, { product: ProductInput | string }> {
+  files?: Express.Multer.File[]
+  | { [fieldname: string]: Express.Multer.File[] }
+  | undefined
+}
 
 export const createProduct = async (
-  req: Request<{}, {}, ProductInput>,
+  req: CreateProductRequest,
   res: Response,
   next: NextFunction
 ) => {
+  console.log({
+    files: req.files,
+    body: req.body
+  })
   try {
-    const { 
-      name, 
-      description,
-      price, 
-      stock, 
-      category, 
-      // images, 
-      isActive, productType, variants, options, metaFields } = req.body;
-    const data = await ProductService.createProduct({
-      productType,
-      name,
-      description,
-      price,
-      stock,
-      category,
-      // images,
-      isActive,
-      variants,
-      options, 
-      metaFields
-    });
-    logger.info("Product created successfully", { name });
-    res.status(201).json(data);
+    if (typeof req.body.product === "string") {
+      const files = req.files as Express.Multer.File[];
+
+      const imageUrls = files.map(file =>
+        `${req.protocol}://${req.get("host")}/uploads/products/${file.filename}`
+      );
+      const {
+        name,
+        description,
+        price,
+        stock,
+        category,
+        // images, 
+        isActive, productType, variants, options, metaFields } = JSON.parse(req.body.product) as ProductInput;
+      const data = await ProductService.createProduct({
+        productType,
+        name,
+        description,
+        price,
+        stock,
+        category,
+        images: imageUrls,
+        isActive,
+        variants,
+        options,
+        metaFields
+      });
+      logger.info("Product created successfully", { name });
+      res.status(201).json(data);
+    } else {
+      throw new BadRequestError("Invalid data");
+    }
   } catch (err) {
     logger.error("Error occurred in createProduct", { error: err });
     next(err);
@@ -84,19 +104,19 @@ export const updateProduct = async (
 ) => {
   try {
     const { id } = req.params;
-    const { 
-      name, 
-      description, 
-      price, 
-      stock, 
-      category, 
+    const {
+      name,
+      description,
+      price,
+      stock,
+      category,
       // images, 
-      isActive, 
-      productType, 
-      discount, 
-      metaFields, 
-      options, 
-      variants 
+      isActive,
+      productType,
+      discount,
+      metaFields,
+      options,
+      variants
     } =
       req.body;
     const data = await ProductService.updateProduct(id, {
