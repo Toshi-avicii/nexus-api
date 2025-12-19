@@ -26,6 +26,7 @@ interface CreateProductBody {
   variants?: Variant[];
   options: Option[];
   metaFields: MetaField[];
+  productStatus: 'draft' | 'published';
 }
 
 interface GetAllProductsQuery {
@@ -107,7 +108,8 @@ export default class ProductService {
         discount: body.discount || 0,
         variants: body.variants,
         options: body.options,
-        metaFields: body.metaFields
+        metaFields: body.metaFields,
+        productStatus: body.productStatus
       });
 
       logger.info("Product created successfully", {

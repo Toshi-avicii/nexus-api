@@ -11,6 +11,7 @@ import { limiter } from "./middlewares/rateLimit.middleware";
 import { speedLimiter } from "./middlewares/slowDown.middleware";
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpecification from "./swagger";
+import path from "path";
 const app = express();
 app.set('trust proxy', 1);
 
@@ -36,7 +37,7 @@ app.use(compression()); // Gzip compression
 app.use(morgan("combined", { stream })); // Logging
 app.use(speedLimiter); // Speed limiting
 app.use(limiter); // Rate limiting
-
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Routes
 app.use('/api/v1', appRoutes);

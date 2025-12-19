@@ -4,6 +4,7 @@ import z from "zod";
    ENUMS
 ---------------------------------- */
 export const PRODUCT_TYPES = ["clothing", "electronics", "furniture", "other"] as const;
+export const PRODUCT_STATUS = ['draft', 'published'] as const;
 
 /* ----------------------------------
    META FIELD SCHEMA
@@ -80,6 +81,9 @@ export const productSchema = z.object({
     // ).optional().default([]),
   
     isActive: z.boolean().default(true),
+    productStatus: z.enum(PRODUCT_STATUS, {
+      error: 'product status is invalid'
+    }),
   
     variants: z.array(variantSchema).optional().default([]),
     options: z.array(optionSchema).optional().default([]),

@@ -33,7 +33,7 @@ export const createProduct = async (
         stock,
         category,
         // images, 
-        isActive, productType, variants, options, metaFields } = JSON.parse(req.body.product) as ProductInput;
+        isActive, productType, variants, options, metaFields, discount, productStatus } = JSON.parse(req.body.product) as ProductInput;
       const data = await ProductService.createProduct({
         productType,
         name,
@@ -45,7 +45,9 @@ export const createProduct = async (
         isActive,
         variants,
         options,
-        metaFields
+        metaFields,
+        discount,
+        productStatus
       });
       logger.info("Product created successfully", { name });
       res.status(201).json(data);
