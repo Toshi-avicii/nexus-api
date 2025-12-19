@@ -53,7 +53,6 @@ export const signUp = async (
     logger.info("User created successfully");
     res.status(201).json(data);
   } catch (err) {
-    console.log({ err });
     if (err instanceof Error) {
       logger.error("Error occurred", { message: err.message });
       // res.status(400).json({ message: error.message });
@@ -108,7 +107,6 @@ export const forgotPassword = async (req: Request<{}, {}, ForgotPasswordInput>, 
     logger.info("forgot password API hit successfully");
     res.status(200).json(result);
   } catch (err) {
-    console.log({ err })
     if (err instanceof Error || err instanceof CustomError) {
       logger.error("Error occurred", { message: err.message });
       // res.status(400).json({ message: err.message });
