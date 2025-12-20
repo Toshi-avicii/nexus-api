@@ -15,10 +15,6 @@ export const createProduct = async (
   res: Response,
   next: NextFunction
 ) => {
-  console.log({
-    files: req.files,
-    body: req.body
-  })
   try {
     if (typeof req.body.product === "string") {
       const files = req.files as Express.Multer.File[];

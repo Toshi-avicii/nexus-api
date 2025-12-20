@@ -1,12 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodError, ZodObject, ZodRawShape } from 'zod'
 
-const validateResource =
+const validateProduct =
     (schema: ZodObject<ZodRawShape>) =>
         (req: Request, res: Response, next: NextFunction) => {
+            const product = JSON.parse(req.body?.product); // only for create new product route.
+            console.log({ body: product ? product : req.body })
             try {
                 schema.parse({
-                    body: req.body,
+                    body: product,
                     query: req.query,
                     params: req.params,
                 });
@@ -26,4 +28,4 @@ const validateResource =
             }
         };
 
-export default validateResource;
+export default validateProduct;
