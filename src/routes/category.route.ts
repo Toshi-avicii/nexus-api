@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createCategory, deleteCategory, getAllCategories, getCategoryById, updateCategory } from "../controllers/category.controller";
+import { createCategory, deleteCategory, deleteManyCategories, getAllCategories, getCategoryById, updateCategory } from "../controllers/category.controller";
 import { verifyToken, restrictToAdmin } from "../middlewares/auth.middleware";
 import validateResource from "../middlewares/inputValidation.middleware";
 import { categorySchema } from "../validations/category.schema";
@@ -11,6 +11,7 @@ categoryRouter.get("/", getAllCategories);
 categoryRouter.get("/:id", getCategoryById);
 categoryRouter.put("/:id", verifyToken, restrictToAdmin, validateResource(categorySchema), updateCategory);
 categoryRouter.delete("/:id", verifyToken, restrictToAdmin, deleteCategory);
+categoryRouter.delete("/", verifyToken, restrictToAdmin, deleteManyCategories);
 
 
 export default categoryRouter;

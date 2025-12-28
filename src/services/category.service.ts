@@ -203,4 +203,18 @@ export default class CategoryService {
       throw err;
     }
   }
+
+  static async deleteCategories(categoryIds: string[]) {
+    try {
+      logger.info("Deleting categories", { categoryIds });
+      const result = await categoryModel.deleteMany({ _id: { $in: categoryIds } })
+      return result;
+    } catch(err) {
+      logger.error("Error in deleteCategory", { error: err });
+      if (err instanceof MongooseError) {
+        throw new BadRequestError("Invalid category ID");
+      }
+      throw err;
+    }
+  }
 }
