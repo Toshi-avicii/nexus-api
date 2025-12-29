@@ -26,6 +26,7 @@ interface CreateProductBody {
   variants?: Variant[];
   options: Option[];
   metaFields: MetaField[];
+  productStatus: 'draft' | 'published';
 }
 
 interface GetAllProductsQuery {
@@ -44,7 +45,7 @@ interface UpdateProductBody {
   price?: number;
   stock?: number;
   category?: string[];
-  images?: string[];
+  // images?: string[];
   isActive?: boolean;
   discount: number;
   variants?: Variant[];
@@ -107,7 +108,8 @@ export default class ProductService {
         discount: body.discount || 0,
         variants: body.variants,
         options: body.options,
-        metaFields: body.metaFields
+        metaFields: body.metaFields,
+        productStatus: body.productStatus
       });
 
       logger.info("Product created successfully", {
@@ -203,6 +205,7 @@ export default class ProductService {
         data: products.map((product) => ({
           _id: product._id,
           productType: product.productType,
+          status: product.productStatus,
           name: product.name,
           description: product.description,
           price: product.price,
@@ -285,7 +288,7 @@ export default class ProductService {
         body.price === undefined &&
         body.stock === undefined &&
         !body.category &&
-        !body.images &&
+        // !body.images &&
         body.isActive === undefined &&
         !body.variants &&
         !body.options &&
@@ -348,9 +351,9 @@ export default class ProductService {
         }
         update.category = body.category;
       }
-      if (body.images) {
-        update.images = body.images;
-      }
+      // if (body.images) {
+      //   update.images = body.images;
+      // }
       if (body.isActive !== undefined) {
         update.isActive = body.isActive;
       }

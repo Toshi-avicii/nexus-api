@@ -4,6 +4,7 @@ import config from "../config";
 import { AuthenticationError, ForbiddenError, TokenExpiredError } from "../utils/errors";
 import logger from "../utils/logger";
 import { CustomJWTPayload } from "../types/general";
+import userModel from "../models/user.model";
 
 export const verifyToken = (
   req: Request,
@@ -31,14 +32,15 @@ export const verifyToken = (
   }
 };
 
-export const restrictToAdmin = (
+export const restrictToAdmin = async(
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   const user = (req as any).user;
-  console.log({ user });
-  if (!user || user.role !== "admin") {
+  const userData = await userModel.findById(user.userId);
+
+  if ((!user || user.role !== "admin") && userData?.role.toLowerCase() !== "admin") {
     logger.warn("Access denied: Admin role required", { userId: user?.userId });
     throw new AuthenticationError("Access denied: Admin role required");
   }

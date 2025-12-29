@@ -15,7 +15,6 @@ export const createCategory = async (req: Request<{}, {}, CategoryInput>, res: R
   }
 };
 
-
 export const getAllCategories = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await CategoryService.getAllCategories();
@@ -56,7 +55,7 @@ export const deleteCategory = async (req: Request, res: Response, next: NextFunc
   try {
     const { id } = req.params;
     const result = await CategoryService.deleteCategory(id);
-    if(result) {
+    if (result) {
       logger.info("Category deleted successfully", { id });
       res.status(200).json({
         message: "category deleted successfully",
@@ -70,3 +69,27 @@ export const deleteCategory = async (req: Request, res: Response, next: NextFunc
     next(err);
   }
 };
+
+export const deleteManyCategories = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { categoryIds } = req.body;
+    const result = await CategoryService.deleteCategories(categoryIds);
+    if (result.deletedCount > 0) {
+      logger.info("Categories deleted successfully", { deleteCount: categoryIds });
+      res.status(200).json({
+        message: "categories deleted successfully",
+        deleteCount: result.deletedCount
+      });
+    } else if(result.deletedCount === 0) {
+      res.status(200).json({
+        message: 'No category deleted',
+        deleteCount: result.deletedCount
+      })
+    } else {
+      throw new Error("Could not delete category");
+    }
+  } catch (err) {
+    logger.error("Error occurred in deleteCategory", { error: err });
+    next(err);
+  }
+}
