@@ -12,6 +12,8 @@ import { speedLimiter } from "./middlewares/slowDown.middleware";
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpecification from "./swagger";
 import path from "path";
+import mongoose from "mongoose";
+import { ensureDefaultCategory } from "./utils/ensureDefaultCategory";
 const app = express();
 app.set('trust proxy', 1);
 
@@ -38,6 +40,10 @@ app.use(morgan("combined", { stream })); // Logging
 app.use(speedLimiter); // Speed limiting
 app.use(limiter); // Rate limiting
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+mongoose.connection.once("open", async () => {
+    await ensureDefaultCategory();
+    console.log("Default category ensured");
+});
 
 // Routes
 app.use('/api/v1', appRoutes);

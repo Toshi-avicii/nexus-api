@@ -10,7 +10,7 @@ interface Category extends Document {
 }
 
 // Define CategoryModel type
-interface CategoryModel extends Model<Category> {}
+interface CategoryModel extends Model<Category> { }
 
 const categorySchema = new Schema<Category, CategoryModel>(
   {
@@ -46,6 +46,14 @@ categorySchema.pre<Category>("save", async function (next) {
     next(err instanceof Error ? err : new Error("Unknown error in pre-save"));
   }
 });
+
+categorySchema.pre<Category>("deleteOne", { document: true }, function (next) {
+  if (this.name === "Uncategorized") {
+    return next(new Error("Cannot delete default category"));
+  }
+  next();
+});
+
 
 const categoryModel: CategoryModel = models.Category || model<Category, CategoryModel>("Category", categorySchema);
 

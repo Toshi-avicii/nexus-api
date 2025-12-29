@@ -2,6 +2,8 @@ import { MongooseError } from "mongoose";
 import categoryModel from "../models/category.model";
 import { ValidationError, BadRequestError } from "../utils/errors";
 import logger from "../utils/logger";
+import productModel from "../models/product.model";
+import { ensureDefaultCategory } from "../utils/ensureDefaultCategory";
 
 interface CreateCategoryBody {
   name: string;
@@ -68,13 +70,17 @@ export default class CategoryService {
         count: categories.length,
       });
       return {
-        data: categories.map((category) => ({
-          _id: category._id,
-          name: category.name,
-          description: category.description,
-          createdAt: category.createdAt,
-          updatedAt: category.updatedAt,
-        })),
+        data: categories.filter((category) => {
+          if (category.name !== "Uncategorized") {
+            return {
+              _id: category._id,
+              name: category.name,
+              description: category.description,
+              createdAt: category.createdAt,
+              updatedAt: category.updatedAt,
+            }
+          }
+        }),
       };
     } catch (err) {
       logger.error("Error in getAllCategories", { error: err });
@@ -188,11 +194,28 @@ export default class CategoryService {
   static async deleteCategory(id: string) {
     try {
       logger.info("Deleting category", { id });
+      const uncategorized = await ensureDefaultCategory();
       const category = await categoryModel.findByIdAndDelete(id).lean();
+
+      if (id === uncategorized._id?.toString()) {
+        throw new Error("Cannot delete Uncategorized category");
+      }
+
       if (!category) {
         logger.warn("Category not found", { id });
         throw new BadRequestError("Category not found");
       }
+      // 1. remove category from products
+      await productModel.updateMany(
+        { category: { $in: [id] } },
+        { $pull: { category: id } }
+      );
+
+      // 2. add "uncategorized" to empty category array
+      await productModel.updateMany(
+        { category: { $size: 0 } },
+        { $addToSet: { category: uncategorized._id } }
+      );
       logger.info("Category deleted successfully", { id, name: category.name });
       return { data: null };
     } catch (err) {
@@ -207,9 +230,27 @@ export default class CategoryService {
   static async deleteCategories(categoryIds: string[]) {
     try {
       logger.info("Deleting categories", { categoryIds });
+      const uncategorized = await ensureDefaultCategory();
+      const uncategorizedId = uncategorized._id?.toString();
+
+      if (uncategorizedId && categoryIds.includes(uncategorizedId)) {
+        throw new BadRequestError("Cannot delete Uncategorized category");
+      }
+
+      // 1. remove categoryIds from the products matched.
+      await productModel.updateMany(
+        { category: { $in: [categoryIds] } },
+        { $pull: { category: { $in: [categoryIds] } } }
+      )
+      
+      // 2. add uncategorized category to the products.
+      await productModel.updateMany(
+        { category: { $size: 0 } },
+        { $addToSet: { category: uncategorized._id } }
+      )
       const result = await categoryModel.deleteMany({ _id: { $in: categoryIds } })
       return result;
-    } catch(err) {
+    } catch (err) {
       logger.error("Error in deleteCategory", { error: err });
       if (err instanceof MongooseError) {
         throw new BadRequestError("Invalid category ID");
