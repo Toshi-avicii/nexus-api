@@ -1,6 +1,6 @@
 import { MongooseError } from "mongoose";
 import categoryModel from "../models/category.model";
-import { ValidationError, BadRequestError } from "../utils/errors";
+import { ValidationError, BadRequestError, ForbiddenError } from "../utils/errors";
 import logger from "../utils/logger";
 import productModel from "../models/product.model";
 import { ensureDefaultCategory } from "../utils/ensureDefaultCategory";
@@ -71,7 +71,7 @@ export default class CategoryService {
       });
       return {
         data: categories.filter((category) => {
-          if (category.name !== "Uncategorized") {
+          // if (category.name !== "Uncategorized") {
             return {
               _id: category._id,
               name: category.name,
@@ -79,7 +79,7 @@ export default class CategoryService {
               createdAt: category.createdAt,
               updatedAt: category.updatedAt,
             }
-          }
+          // }
         }),
       };
     } catch (err) {
@@ -123,12 +123,18 @@ export default class CategoryService {
 
   static async updateCategory(id: string, body: UpdateCategoryBody) {
     try {
+      const uncategorized = await ensureDefaultCategory();
+      const uncategorizedId = uncategorized._id?.toString();
       // Validate input
       if (!body.name && !body.description) {
         logger.warn("No fields provided for update", { id });
         throw new ValidationError(
           "At least one field (name or description) must be provided"
         );
+      }
+
+      if(id === uncategorizedId) {
+        throw new BadRequestError("Cannot update Uncategorized category");
       }
 
       // Prepare update object
@@ -195,11 +201,12 @@ export default class CategoryService {
     try {
       logger.info("Deleting category", { id });
       const uncategorized = await ensureDefaultCategory();
-      const category = await categoryModel.findByIdAndDelete(id).lean();
 
       if (id === uncategorized._id?.toString()) {
-        throw new Error("Cannot delete Uncategorized category");
+        throw new BadRequestError("Cannot delete Uncategorized category");
       }
+
+      const category = await categoryModel.findByIdAndDelete(id).lean();
 
       if (!category) {
         logger.warn("Category not found", { id });
