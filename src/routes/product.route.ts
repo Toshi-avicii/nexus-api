@@ -8,10 +8,12 @@ import validateProduct from "../middlewares/productValidation.middleware";
 
 const productRouter = Router();
 
-productRouter.post("/", verifyToken, restrictToAdmin, upload.array('images', 10), validateProduct(productSchema), createProduct);
+productRouter.use(verifyToken);
+
+productRouter.post("/", restrictToAdmin, upload.array('images', 10), validateProduct(productSchema), createProduct);
 productRouter.get("/", getAllProducts);
 productRouter.get("/:id", getProductById);
-productRouter.put("/:id", verifyToken, restrictToAdmin, validateResource(productSchema), updateProduct);
-productRouter.delete("/:id", verifyToken, restrictToAdmin, deleteProduct);
+productRouter.put("/:id", restrictToAdmin, validateResource(productSchema), updateProduct);
+productRouter.delete("/:id", restrictToAdmin, deleteProduct);
 
 export default productRouter;
