@@ -34,16 +34,20 @@ app.use(cors({
 //   next();
 // });
 
+mongoose.connection.once("open", async () => {
+    try {
+        await ensureDefaultCategory();
+        logger.info("Default category ensured");
+    } catch (err) {
+        logger.error("Failed to ensure default category", err);
+    }
+});
 app.use(helmet()); // Security headers
 app.use(compression()); // Gzip compression
 app.use(morgan("combined", { stream })); // Logging
 app.use(speedLimiter); // Speed limiting
 app.use(limiter); // Rate limiting
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
-mongoose.connection.once("open", async () => {
-    await ensureDefaultCategory();
-    console.log("Default category ensured");
-});
 
 // Routes
 app.use('/api/v1', appRoutes);

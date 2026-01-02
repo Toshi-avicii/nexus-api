@@ -45,12 +45,13 @@ interface UpdateProductBody {
   price?: number;
   stock?: number;
   category?: string[];
-  // images?: string[];
+  images?: string[];
   isActive?: boolean;
   discount: number;
   variants?: Variant[];
   options?: Option[];
   metaFields?: MetaField[];
+  productStatus: "draft" | "published";
 }
 
 export default class ProductService {
@@ -314,14 +315,14 @@ export default class ProductService {
           );
         }
         // Check if name is already taken by another product
-        const existingProduct = await productModel.findOne({
-          name: update.name,
-          _id: { $ne: id },
-        });
-        if (existingProduct) {
-          logger.warn("Product name already in use", { name: update.name });
-          throw new BadRequestError("Product name already in use");
-        }
+        // const existingProduct = await productModel.findOne({
+        //   name: update.name,
+        //   _id: { $ne: id },
+        // });
+        // if (existingProduct) {
+        //   logger.warn("Product name already in use", { name: update.name });
+        //   throw new BadRequestError("Product name already in use");
+        // }
       }
       if (body.description) {
         update.description = body.description.trim();
@@ -351,9 +352,9 @@ export default class ProductService {
         }
         update.category = body.category;
       }
-      // if (body.images) {
-      //   update.images = body.images;
-      // }
+      if (body.images) {
+        update.images = body.images;
+      }
       if (body.isActive !== undefined) {
         update.isActive = body.isActive;
       }
@@ -369,6 +370,9 @@ export default class ProductService {
       if (body.metaFields !== undefined) {
         update.metaFields = body.metaFields;
       }
+
+      update.productStatus = body.productStatus;
+      update.productType = body.productType;
 
       logger.info("Updating product", { id, update });
       const product = await productModel

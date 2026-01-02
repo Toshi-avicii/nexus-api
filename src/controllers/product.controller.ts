@@ -10,6 +10,12 @@ interface CreateProductRequest extends Request<{}, {}, { product: ProductInput |
   | undefined
 }
 
+interface UpdateProductRequest extends Request<{ id: string }, {}, { product: ProductInput | string }> {
+  files?: Express.Multer.File[]
+  | { [fieldname: string]: Express.Multer.File[] }
+  | undefined
+}
+
 export const createProduct = async (
   req: CreateProductRequest,
   res: Response,
@@ -96,43 +102,51 @@ export const getProductById = async (
 };
 
 export const updateProduct = async (
-  req: Request<{ id: string }, {}, ProductInput>,
+  req: UpdateProductRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { id } = req.params;
-    const {
-      name,
-      description,
-      price,
-      stock,
-      category,
-      // images, 
-      isActive,
-      productType,
-      discount,
-      metaFields,
-      options,
-      variants
-    } =
-      req.body;
-    const data = await ProductService.updateProduct(id, {
-      productType,
-      name,
-      description,
-      price,
-      stock,
-      category,
-      // images,
-      isActive,
-      discount,
-      variants,
-      options,
-      metaFields
-    });
-    logger.info("Product updated successfully", { id, name: data.data.name });
-    res.status(200).json(data);
+    console.log({ productId: id });
+    if (typeof req.body.product === 'string') {
+      const files = req.files as Express.Multer.File[];
+      const imageUrls = files.map(file =>
+        `${req.protocol}://${req.get("host")}/uploads/products/${file.filename}`
+      );
+      const {
+        name,
+        description,
+        price,
+        stock,
+        category,
+        // images, 
+        isActive,
+        productType,
+        discount,
+        metaFields,
+        options,
+        variants,
+        productStatus
+      } = JSON.parse(req.body.product) as ProductInput;
+      const data = await ProductService.updateProduct(id, {
+        productType,
+        name,
+        description,
+        price,
+        stock,
+        category,
+        images: imageUrls,
+        isActive,
+        discount,
+        variants,
+        options,
+        metaFields,
+        productStatus
+      });
+      logger.info("Product updated successfully", { id, name: data.data.name });
+      res.status(200).json(data);
+    }
   } catch (err) {
     logger.error("Error occurred in updateProduct", { error: err });
     next(err);
