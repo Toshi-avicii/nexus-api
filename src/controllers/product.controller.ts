@@ -114,6 +114,11 @@ export const updateProduct = async (
       const imageUrls = files.map(file =>
         `${req.protocol}://${req.get("host")}/uploads/products/${file.filename}`
       );
+
+      console.log({
+        files,
+        imageUrls
+      })
       const {
         name,
         description,
