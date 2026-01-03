@@ -4,6 +4,7 @@ import categoryModel from "../models/category.model";
 import { ValidationError, BadRequestError } from "../utils/errors";
 import logger from "../utils/logger";
 import { MetaField, Option, Variant } from "../types/product";
+import { unlink } from "node:fs";
 // import { PROUDCT_TYPES } from "../types/product";
 
 enum PROUDCT_TYPES {
@@ -372,9 +373,21 @@ export default class ProductService {
       }
 
       update.productStatus = body.productStatus;
-      update.productType = body.productType;
 
       logger.info("Updating product", { id, update });
+      const existingProductImages = await productModel.findOne({ _id: id }, { images: true });
+
+      if (existingProductImages && existingProductImages?.images.length > 0) {
+        existingProductImages?.images.forEach(async (img) => {
+          const imgPath = `uploads/${img.split('uploads/')[1]}`;
+          unlink(imgPath, (err) => {
+            if (err) throw err;
+            logger.info(`file at ${imgPath} was deleted`);
+            console.log(`file at ${imgPath} was deleted`);
+          })
+        })
+      }
+
       const product = await productModel
         .findByIdAndUpdate(id, { $set: update }, { new: true, runValidators: true })
         .populate("category", "name")
@@ -412,10 +425,22 @@ export default class ProductService {
   static async deleteProduct(id: string) {
     try {
       logger.info("Deleting product", { id });
+      const existingProductImages = await productModel.findOne({ _id: id }, { images: true });
       const product = await productModel.findByIdAndDelete(id).lean();
       if (!product) {
         logger.warn("Product not found", { id });
         throw new BadRequestError("Product not found");
+      } else {
+        if (existingProductImages && existingProductImages?.images.length > 0) {
+          existingProductImages?.images.forEach(async (img) => {
+            const imgPath = `uploads/${img.split('uploads/')[1]}`;
+            unlink(imgPath, (err) => {
+              if (err) throw err;
+              logger.info(`file at ${imgPath} was deleted`);
+              console.log(`file at ${imgPath} was deleted`);
+            })
+          })
+        }
       }
       logger.info("Product deleted successfully", { id, name: product.name });
       return { data: null };
