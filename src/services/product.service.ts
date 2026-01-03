@@ -4,7 +4,8 @@ import categoryModel from "../models/category.model";
 import { ValidationError, BadRequestError } from "../utils/errors";
 import logger from "../utils/logger";
 import { MetaField, Option, Variant } from "../types/product";
-import { unlink } from "node:fs";
+import fs from "fs/promises";
+import path from "node:path";
 // import { PROUDCT_TYPES } from "../types/product";
 
 enum PROUDCT_TYPES {
@@ -378,13 +379,22 @@ export default class ProductService {
       const existingProductImages = await productModel.findOne({ _id: id }, { images: true });
 
       if (existingProductImages && existingProductImages?.images.length > 0) {
-        existingProductImages?.images.forEach(async (img) => {
-          const imgPath = `uploads/${img.split('uploads/')[1]}`;
-          unlink(imgPath, (err) => {
-            if (err) throw err;
-            logger.info(`file at ${imgPath} was deleted`);
-            console.log(`file at ${imgPath} was deleted`);
-          })
+        existingProductImages.images.map(async (img) => {
+          try {
+            const relativePath = img.split("uploads/")[1];
+            if (!relativePath) return;
+            const imgPath = path.join(process.cwd(), "uploads", relativePath);
+            console.log({ imgPath });
+            await fs.unlink(imgPath);
+            logger.info(`File deleted: ${imgPath}`);
+          } catch (err: any) {
+            if (err.code !== "ENOENT") {
+              logger.error("Failed to delete image", {
+                image: img,
+                error: err.message,
+              });
+            }
+          }
         })
       }
 
@@ -432,13 +442,21 @@ export default class ProductService {
         throw new BadRequestError("Product not found");
       } else {
         if (existingProductImages && existingProductImages?.images.length > 0) {
-          existingProductImages?.images.forEach(async (img) => {
-            const imgPath = `uploads/${img.split('uploads/')[1]}`;
-            unlink(imgPath, (err) => {
-              if (err) throw err;
-              logger.info(`file at ${imgPath} was deleted`);
-              console.log(`file at ${imgPath} was deleted`);
-            })
+          existingProductImages.images.map(async (img) => {
+            try {
+              const relativePath = img.split("uploads/")[1];
+              if (!relativePath) return;
+              const imgPath = path.join(process.cwd(), "uploads", relativePath);
+              await fs.unlink(imgPath);
+              logger.info(`File deleted: ${imgPath}`);
+            } catch (err: any) {
+              if (err.code !== "ENOENT") {
+                logger.error("Failed to delete image", {
+                  image: img,
+                  error: err.message,
+                });
+              }
+            }
           })
         }
       }

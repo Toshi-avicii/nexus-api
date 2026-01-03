@@ -115,10 +115,6 @@ export const updateProduct = async (
         `${req.protocol}://${req.get("host")}/uploads/products/${file.filename}`
       );
 
-      console.log({
-        files,
-        imageUrls
-      })
       const {
         name,
         description,

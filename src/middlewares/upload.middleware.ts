@@ -22,7 +22,7 @@ const storage = new CloudinaryStorage({
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads/products");
 
-const allowedMimeTypes: Record<string, string> = {
+export const allowedMimeTypes: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
@@ -50,7 +50,7 @@ const diskStorage = multer.diskStorage({
 });
 
 const upload = multer({
-  storage: diskStorage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024,
   },
@@ -63,4 +63,3 @@ const upload = multer({
 });
 
 export default upload;
-
