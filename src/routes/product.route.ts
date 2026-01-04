@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { createProduct, deleteProduct, getAllProducts, getProductById, updateProduct } from "../controllers/product.controller";
+import { bulkUploadProducts, createProduct, deleteProduct, getAllProducts, getProductById, updateProduct } from "../controllers/product.controller";
 import { verifyToken, restrictToAdmin } from "../middlewares/auth.middleware";
 import { productSchema } from "../validations/product.schema";
-import upload from "../middlewares/upload.middleware";
+import upload, { excelSheetUpload } from "../middlewares/upload.middleware";
 import validateProduct from "../middlewares/productValidation.middleware";
 import { compressProductImages } from "../middlewares/compressImage.middleware";
 
@@ -15,5 +15,5 @@ productRouter.get("/", getAllProducts);
 productRouter.get("/:id", getProductById);
 productRouter.put("/:id", restrictToAdmin, upload.array('images', 10), compressProductImages, validateProduct(productSchema), updateProduct);
 productRouter.delete("/:id", restrictToAdmin, deleteProduct);
-
+productRouter.post('/bulk-upload', restrictToAdmin, excelSheetUpload.single('file'), bulkUploadProducts);
 export default productRouter;

@@ -3,6 +3,10 @@ import ProductService from "../services/product.service";
 import logger from "../utils/logger";
 import { ProductInput } from "../types/product";
 import { BadRequestError } from "../utils/errors";
+import XLSX from 'xlsx';
+import categoryModel from "../models/category.model";
+import mongoose, { ObjectId } from "mongoose";
+import productModel from "../models/product.model";
 
 interface CreateProductRequest extends Request<{}, {}, { product: ProductInput | string }> {
   files?: Express.Multer.File[]
@@ -176,3 +180,17 @@ export const deleteProduct = async (
     next(err);
   }
 };
+
+export const bulkUploadProducts = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Excel file is required" });
+    }
+
+    const result = await ProductService.bulkProductUpload(req.file)
+    res.status(200).json(result);
+  } catch (err) {
+    logger.error("Error occurred in bulkUploadProducts", { error: err });
+    next(err);
+  }
+}
