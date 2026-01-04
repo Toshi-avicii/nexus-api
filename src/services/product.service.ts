@@ -1,10 +1,12 @@
-import { MongooseError } from "mongoose";
+import mongoose, { MongooseError, ObjectId } from "mongoose";
 import productModel from "../models/product.model";
 import categoryModel from "../models/category.model";
 import { ValidationError, BadRequestError } from "../utils/errors";
 import logger from "../utils/logger";
 import { MetaField, Option, Variant } from "../types/product";
-import { unlink } from "node:fs";
+import fs from "fs/promises";
+import path from "node:path";
+import XLSX from 'xlsx';
 // import { PROUDCT_TYPES } from "../types/product";
 
 enum PROUDCT_TYPES {
@@ -378,13 +380,22 @@ export default class ProductService {
       const existingProductImages = await productModel.findOne({ _id: id }, { images: true });
 
       if (existingProductImages && existingProductImages?.images.length > 0) {
-        existingProductImages?.images.forEach(async (img) => {
-          const imgPath = `uploads/${img.split('uploads/')[1]}`;
-          unlink(imgPath, (err) => {
-            if (err) throw err;
-            logger.info(`file at ${imgPath} was deleted`);
-            console.log(`file at ${imgPath} was deleted`);
-          })
+        existingProductImages.images.map(async (img) => {
+          try {
+            const relativePath = img.split("uploads/")[1];
+            if (!relativePath) return;
+            const imgPath = path.join(process.cwd(), "uploads", relativePath);
+            console.log({ imgPath });
+            await fs.unlink(imgPath);
+            logger.info(`File deleted: ${imgPath}`);
+          } catch (err: any) {
+            if (err.code !== "ENOENT") {
+              logger.error("Failed to delete image", {
+                image: img,
+                error: err.message,
+              });
+            }
+          }
         })
       }
 
@@ -432,13 +443,21 @@ export default class ProductService {
         throw new BadRequestError("Product not found");
       } else {
         if (existingProductImages && existingProductImages?.images.length > 0) {
-          existingProductImages?.images.forEach(async (img) => {
-            const imgPath = `uploads/${img.split('uploads/')[1]}`;
-            unlink(imgPath, (err) => {
-              if (err) throw err;
-              logger.info(`file at ${imgPath} was deleted`);
-              console.log(`file at ${imgPath} was deleted`);
-            })
+          existingProductImages.images.map(async (img) => {
+            try {
+              const relativePath = img.split("uploads/")[1];
+              if (!relativePath) return;
+              const imgPath = path.join(process.cwd(), "uploads", relativePath);
+              await fs.unlink(imgPath);
+              logger.info(`File deleted: ${imgPath}`);
+            } catch (err: any) {
+              if (err.code !== "ENOENT") {
+                logger.error("Failed to delete image", {
+                  image: img,
+                  error: err.message,
+                });
+              }
+            }
           })
         }
       }
@@ -446,6 +465,150 @@ export default class ProductService {
       return { data: null };
     } catch (err) {
       logger.error("Error in deleteProduct", { error: err });
+      if (err instanceof MongooseError) {
+        throw new BadRequestError("Invalid product ID");
+      }
+      throw err;
+    }
+  }
+
+  static async bulkProductUpload(file: Express.Multer.File) {
+    try {
+      const workbook = XLSX.read(file.buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json<any>(sheet, {
+        defval: null,
+        range: 1
+      });
+
+      const categoryList = await categoryModel.find({}, { name: 1 }).lean();
+      const categoryMap = new Map<string, mongoose.Schema.Types.ObjectId>();
+
+      categoryList.forEach(cat => {
+        categoryMap.set(cat.name.toLowerCase(), cat._id as ObjectId);
+      })
+
+      const parseImages = (raw?: string): string[] =>
+        raw ? raw.split(",").map(i => i.trim()).filter(Boolean) : [];
+
+      const parseVariantOptions = (raw?: string) => {
+        if (!raw) return [];
+
+        return raw
+          .split(",")
+          .map(pair => {
+            const [key, value] = pair.split(":");
+
+            if (!key || !value) return null;
+
+            return {
+              key: key.trim(),
+              value: value.trim()
+            };
+          })
+          .filter(Boolean);
+      };
+
+      const validProductTypes = ['clothing', 'other', 'electronics', 'furniture'];
+      const validProductStatuses = ['published', 'draft'];
+
+      const validProductRows = rows.map(row => {
+        if (validProductStatuses.includes(row.productStatus) && validProductTypes.includes(row.productType)) {
+          let categoryNames = (row.category as string).split(',').map(item => item.toLowerCase().trim());
+          const product = {
+            name: row.name,
+            productType: row.productType,
+            productStatus: row.productStatus,
+            price: Number(row.price),
+            discount: Number(row.discount ?? 0),
+            stock: Number(row.stock ?? 0),
+
+            category: categoryNames.map(slug => {
+              const id = categoryMap.get(slug);
+              return id;
+            }).filter(id => id),
+
+            images: parseImages(row.images),
+            isActive: true,
+
+            variants: row.variant_sku
+              ? [{
+                sku: row.variant_sku,
+                price: Number(row.variant_price),
+                stock: Number(row.variant_stock),
+                options: parseVariantOptions(row.variant_options)
+              }]
+              : [],
+
+            options: row.option_name
+              ? [{
+                name: row.option_name,
+                values: row.option_value
+                  ?.split(",")
+                  .map((v: string) => v.trim())
+              }]
+              : [],
+
+            metaFields: row.mf_namespace
+              ? [{
+                namespace: row.mf_namespace,
+                key: row.mf_key,
+                type: row.mf_type || "string",
+                value: row.mf_value
+              }]
+              : []
+          }
+          return product;
+        }
+      }).filter(item => item);
+
+      const failedProductRows = rows.map((row, rowIdx) => {
+        if (!validProductStatuses.includes(row.productStatus)) {
+          return {
+            error: `${row.productStatus} is not a valid product status`,
+            rowNo: rowIdx + 1,
+            row: {
+              name: row.name,
+              productType: row.productType,
+              productStatus: row.productStatus
+            },
+          }
+        } else if (!validProductTypes.includes(row.productType)) {
+          return {
+            error: `${row.productType} is not a valid product type`,
+            rowNo: rowIdx + 1,
+            row: {
+              name: row.name,
+              productType: row.productType,
+              productStatus: row.productStatus
+            },
+          }
+        }
+      }).filter(item => item);
+
+      if (validProductRows.length > 0) {
+        const insertedRows = await productModel.insertMany(validProductRows);
+        return {
+          success: true,
+          data: {
+            insertedRows,
+            rejectedRows: failedProductRows
+          },
+          message: `${insertedRows.length} rows inserted successfully, ${failedProductRows.length} rows rejected`
+        }
+      } else {
+        return {
+          success: true,
+          data: {
+            insertedRows: validProductRows,
+            rejectedRows: failedProductRows
+          },
+          message: `${validProductRows.length} rows inserted successfully, ${failedProductRows.length} rows rejected`
+        }
+      }
+    } catch (err) {
+      logger.error("Error in bulkProductUpload", { error: err });
       if (err instanceof MongooseError) {
         throw new BadRequestError("Invalid product ID");
       }
