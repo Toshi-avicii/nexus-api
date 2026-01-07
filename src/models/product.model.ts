@@ -50,6 +50,8 @@ interface Product extends Document {
   variants?: Variant[];
   options?: Option[];
   metaFields?: MetaField[];
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
 }
 
 // Define ProductModel type
@@ -124,7 +126,14 @@ const productSchema = new Schema<Product, ProductModel>(
       type: Boolean,
       default: true,
     },
-
+    isDeleted: {
+      type: Boolean,
+      default: false
+    },
+    deletedAt: {
+      type: Date,
+      default: null
+    },
     variants: [variantSchema],
     options: [optionSchema],
     metaFields: [metaFieldSchema]

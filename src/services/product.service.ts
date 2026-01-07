@@ -153,7 +153,7 @@ export default class ProductService {
       logger.info("Fetching all products with filters", { query });
 
       // Build query filters
-      const filter: any = { isActive: true }; // Only fetch active products
+      const filter: any = { isActive: true, $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }] }; // Only fetch active products
 
       // Category filter
       if (query.category) {
@@ -385,7 +385,6 @@ export default class ProductService {
             const relativePath = img.split("uploads/")[1];
             if (!relativePath) return;
             const imgPath = path.join(process.cwd(), "uploads", relativePath);
-            console.log({ imgPath });
             await fs.unlink(imgPath);
             logger.info(`File deleted: ${imgPath}`);
           } catch (err: any) {
@@ -433,9 +432,28 @@ export default class ProductService {
     }
   }
 
-  static async deleteProduct(id: string) {
+  static async softDeleteProduct(id: string) {
     try {
-      logger.info("Deleting product", { id });
+      logger.info("Soft Deleting product", { id });
+      const product = await productModel.findByIdAndUpdate(id, { isDeleted: true, deletedAt: new Date() }).lean();
+      if (!product) {
+        logger.warn("Product not found", { id });
+        throw new BadRequestError("Product not found");
+      }
+      logger.info("Product soft deleted successfully", { id, name: product.name });
+      return { data: null };
+    } catch (err) {
+      logger.error("Error in softDeleteProduct", { error: err });
+      if (err instanceof MongooseError) {
+        throw new BadRequestError("Invalid product ID");
+      }
+      throw err;
+    }
+  }
+
+  static async hardDeleteProduct(id: string) {
+    try {
+      logger.info("Hard Deleting product", { id });
       const existingProductImages = await productModel.findOne({ _id: id }, { images: true });
       const product = await productModel.findByIdAndDelete(id).lean();
       if (!product) {
@@ -611,6 +629,203 @@ export default class ProductService {
       logger.error("Error in bulkProductUpload", { error: err });
       if (err instanceof MongooseError) {
         throw new BadRequestError("Invalid product ID");
+      }
+      throw err;
+    }
+  }
+
+  static async softDeleteProducts(productIds: string[]) {
+    try {
+      logger.info("Deleting products", { productIds });
+      // soft deleting the products...
+      const foundedProducts = await productModel.updateMany(
+        { _id: { $in: [...productIds] } },
+        { isDeleted: true, deletedAt: new Date() }
+      ).lean();
+
+      return {
+        success: true,
+        foundedProducts,
+      }
+
+    } catch (err) {
+      logger.error("Error in deleteProducts", { error: err });
+      if (err instanceof MongooseError) {
+        throw new BadRequestError("Invalid product ID");
+      }
+      throw err;
+    }
+  }
+
+  static async hardDeleteProducts(productIds: string[]) {
+    try {
+      logger.info("Permanently Deleting products", { productIds });
+      const products = await productModel.find({ _id: { $in: [...productIds] } }, { name: true, images: true }).lean();
+      const imgPaths: string[] = [];
+
+      if (!products.length) {
+        throw new BadRequestError("No products found");
+      }
+
+      products.forEach((product) => {
+        product.images.forEach(img => {
+          const relativePath = img.split("uploads/")[1];
+          if (relativePath) {
+            imgPaths.push(
+              path.join(process.cwd(), "uploads", relativePath)
+            );
+          }
+        })
+      })
+
+      await Promise.all(
+        imgPaths.map(async imgPath => {
+          try {
+            await fs.unlink(imgPath);
+            logger.info("File deleted", { imgPath });
+          } catch (err: any) {
+            if (err.code !== "ENOENT") {
+              logger.error("Failed to delete image", {
+                imgPath,
+                error: err.message,
+              });
+            }
+          }
+        })
+      );
+
+      // hard deleting the products...
+      const deletedProducts = await productModel.deleteMany(
+        { _id: { $in: [...productIds] } }
+      );
+
+      logger.info("Bulk product delete successful", {
+        deletedCount: deletedProducts.deletedCount,
+      });
+
+      return {
+        success: true,
+        deletedCount: deletedProducts.deletedCount,
+      };
+
+    } catch (err) {
+      logger.error("Error in deleteProducts", { error: err });
+      if (err instanceof MongooseError) {
+        throw new BadRequestError("Invalid product ID");
+      }
+      throw err;
+    }
+  }
+
+  static async getAllDeletedProducts(query: GetAllProductsQuery) {
+    try {
+      logger.info("Fetching all deleted products with filters", { query });
+
+      // Build query filters
+      const filter: any = { isActive: true, isDeleted: true }; // Only fetch active products
+
+      // Category filter
+      if (query.category) {
+        const categoryExists = await categoryModel.findById(query.category).lean();
+        if (!categoryExists) {
+          logger.warn("Category not found", { category: query.category });
+          throw new BadRequestError("Category not found");
+        }
+        filter.category = query.category;
+      }
+
+      // Price range filter
+      if (query.minPrice !== undefined) {
+        filter.price = { ...filter.price, $gte: query.minPrice };
+      }
+      if (query.maxPrice !== undefined) {
+        filter.price = { ...filter.price, $lte: query.maxPrice };
+      }
+
+      // Search filter (case-insensitive)
+      if (query.search) {
+        filter.name = { $regex: query.search, $options: "i" };
+      }
+
+      // Pagination
+      const page = query.page ? parseInt(query.page.toString(), 10) : 1;
+      const limit = query.limit ? parseInt(query.limit.toString(), 10) : 10;
+      const skip = (page - 1) * limit;
+
+      // Validate pagination parameters
+      if (page < 1 || limit < 1) {
+        logger.warn("Invalid pagination parameters", { page, limit });
+        throw new ValidationError("Page and limit must be positive numbers");
+      }
+
+      // Fetch products and total count
+      const [products, total] = await Promise.all([
+        productModel
+          .find(filter)
+          .skip(skip)
+          .limit(limit)
+          .populate("category", "name")
+          .lean(),
+        productModel.countDocuments(filter),
+      ]);
+
+      logger.info("Deleted Products retrieved successfully", {
+        count: products.length,
+        total,
+      });
+
+      return {
+        data: products.map((product) => ({
+          _id: product._id,
+          productType: product.productType,
+          status: product.productStatus,
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          discount: product.discount,
+          stock: product.stock,
+          category: product.category,
+          images: product.images,
+          isActive: product.isActive,
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt,
+          variants: product.variants,
+          options: product.options,
+          metaFields: product.metaFields
+        })),
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    } catch (err) {
+      logger.error("Error in getAllProducts", { error: err });
+      if (err instanceof MongooseError) {
+        throw new BadRequestError("Invalid query parameters");
+      }
+      throw err;
+    }
+  }
+
+  static async moveProductFromBin(id: string) {
+    try {
+      const updatedProduct = await productModel.updateOne(
+        { _id: id },
+        { isDeleted: false } 
+      );
+
+      if(updatedProduct) {
+        return {
+          success: true,
+          data: updatedProduct
+        }
+      }
+    } catch (err) {
+      logger.error("Error in moveProductFromBin", { error: err });
+      if (err instanceof MongooseError) {
+        throw new BadRequestError("Invalid Product ID");
       }
       throw err;
     }

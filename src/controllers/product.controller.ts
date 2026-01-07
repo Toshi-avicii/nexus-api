@@ -89,6 +89,29 @@ export const getAllProducts = async (
   }
 };
 
+export const getAllDeletedProducts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { category, minPrice, maxPrice, search, page, limit } = req.query;
+    const data = await ProductService.getAllDeletedProducts({
+      category: category as string,
+      minPrice: minPrice ? parseFloat(minPrice as string) : undefined,
+      maxPrice: maxPrice ? parseFloat(maxPrice as string) : undefined,
+      search: search as string,
+      page: page ? parseInt(page as string, 10) : undefined,
+      limit: limit ? parseInt(limit as string, 10) : undefined,
+    });
+    logger.info("Deleted Products retrieved successfully");
+    res.status(200).json(data);
+  } catch (err) {
+    logger.error("Error occurred in getAllDeletedProducts", { error: err });
+    next(err);
+  }
+};
+
 export const getProductById = async (
   req: Request,
   res: Response,
@@ -158,14 +181,37 @@ export const updateProduct = async (
   }
 };
 
-export const deleteProduct = async (
+export const softDeleteProduct = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { id } = req.params;
-    const result = await ProductService.deleteProduct(id);
+    const result = await ProductService.softDeleteProduct(id);
+    if (result) {
+      logger.info("Product deleted successfully", { id });
+      res.status(200).json({
+        message: "Product deleted successfully",
+        id,
+      });
+    } else {
+      throw new Error("Could not delete product");
+    }
+  } catch (err) {
+    logger.error("Error occurred in deleteProduct", { error: err });
+    next(err);
+  }
+};
+
+export const hardDeleteProduct = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const result = await ProductService.hardDeleteProduct(id);
     if (result) {
       logger.info("Product deleted successfully", { id });
       res.status(200).json({
@@ -191,6 +237,58 @@ export const bulkUploadProducts = async (req: Request, res: Response, next: Next
     res.status(200).json(result);
   } catch (err) {
     logger.error("Error occurred in bulkUploadProducts", { error: err });
+    next(err);
+  }
+}
+
+export const softDeleteManyProducts = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { productIds } = req.body;
+    const result = await ProductService.softDeleteProducts(productIds);
+    if (result.success) {
+      res.status(200).json({
+        message: `${result.foundedProducts.matchedCount} Products deleted successfully`,
+        deletedCount: result.foundedProducts.matchedCount,
+      });
+    } else {
+      res.status(400).json({ success: false, message: "Error occurred" })
+    }
+  } catch (err) {
+    logger.error("Error occurred in deleteManyProducts", { error: err });
+    next(err);
+  }
+}
+
+export const hardDeleteManyProducts = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { productIds } = req.body;
+    const result = await ProductService.hardDeleteProducts(productIds);
+    if (result.success) {
+      res.status(200).json({
+        success: result.success,
+        deletedCount: result.deletedCount,
+        message: `${result.deletedCount} products deleted permanently`
+      });
+    } else {
+      res.status(400).json({ success: false, message: "Error occurred" })
+    }
+  } catch (err) {
+    logger.error("Error occurred in deleteManyProducts", { error: err });
+    next(err);
+  }
+}
+
+export const moveProductFromBin = async (req: Request, res: Response, next: NextFunction) => {
+  try { 
+    const { id } = req.params;
+    const result = await ProductService.moveProductFromBin(id);
+    if(result?.success) {
+      res.status(200).json(result);
+    } else {
+      res.status(400).json({ success: false, message: "Error occurred" })
+    }
+  } catch (err) {
+    logger.error("Error occurred in moveProductFromBin", { error: err });
     next(err);
   }
 }
